@@ -1,44 +1,72 @@
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
 import { publicClient } from "@/lib/rpc";
 import Link from "next/link";
 import { type Block } from "viem";
 
-export const dynamic = "force-dynamic";
+export default function Home() {
+  const [latestBlocks, setLatestBlocks] = useState<Block[]>([]);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [lastUpdate, setLastUpdate] = useState<string>("");
 
-export default async function Home() {
-  let latestBlocks: Block[] = [];
-  let errorMessage = "";
+  const fetchBlocks = useCallback(async () => {
+    try {
+      const currentBlockNumber = await publicClient.getBlockNumber();
 
-  try {
-    const currentBlockNumber = await publicClient.getBlockNumber();
+      const blockPromises = [];
+      for (let i = 0; i < 10; i++) {
+        blockPromises.push(
+          publicClient.getBlock({
+            blockNumber: currentBlockNumber - BigInt(i),
+            includeTransactions: true,
+          }),
+        );
+      }
 
-    const blockPromises = [];
-    for (let i = 0; i < 10; i++) {
-      blockPromises.push(
-        publicClient.getBlock({
-          blockNumber: currentBlockNumber - BigInt(i),
-          includeTransactions: true,
-        }),
-      );
+      const blocks = await Promise.all(blockPromises);
+      setLatestBlocks(blocks);
+      setErrorMessage("");
+      setLastUpdate(new Date().toLocaleTimeString());
+    } catch (err) {
+      setErrorMessage("Could not connect to any BlockDAG RPC.");
+      console.error(err);
     }
-    latestBlocks = await Promise.all(blockPromises);
-  } catch (err) {
-    errorMessage =
-      "Could not connect to any BlockDAG RPC. Please try again later.";
-    console.error(err);
-  }
+  }, []);
+
+  useEffect(() => {
+    // Load immediately
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchBlocks();
+
+    // Auto-update every 6 seconds
+    const interval = setInterval(() => {
+      fetchBlocks();
+    }, 6000);
+
+    return () => clearInterval(interval);
+  }, [fetchBlocks]);
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
       <div className="max-w-6xl mx-auto px-4 py-10">
-        <div className="mb-10">
-          <h1 className="text-4xl font-bold tracking-tight">
-            Odin&apos;s Explorer
-          </h1>
-          <p className="text-gray-400 mt-1">
-            Independent BlockDAG Blockchain Explorer
-          </p>
+        {/* Header */}
+        <div className="mb-10 flex justify-between items-start">
+          <div>
+            <h1 className="text-4xl font-bold tracking-tight">
+              Odin&apos;s Explorer
+            </h1>
+            <p className="text-gray-400 mt-1">
+              Independent BlockDAG Blockchain Explorer
+            </p>
+          </div>
+          <div className="text-right text-sm text-gray-500">
+            <p>Auto-updating</p>
+            <p>Last update: {lastUpdate || "..."}</p>
+          </div>
         </div>
 
+        {/* Search Bar */}
         <form action="/search" className="mb-12">
           <input
             name="q"
@@ -47,14 +75,20 @@ export default async function Home() {
           />
         </form>
 
+        {/* Error Message */}
         {errorMessage && (
           <div className="mb-8 p-4 bg-red-900/40 border border-red-700 rounded-xl text-red-300">
             {errorMessage}
           </div>
         )}
 
+        {/* Latest Blocks */}
         <div>
           <h2 className="text-2xl font-semibold mb-5">Latest Blocks</h2>
+
+          {latestBlocks.length === 0 && !errorMessage && (
+            <p className="text-gray-500">Loading blocks...</p>
+          )}
 
           <div className="space-y-3">
             {latestBlocks.map((block) => (
