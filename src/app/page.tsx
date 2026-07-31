@@ -68,7 +68,7 @@ export default function Home() {
           <input
             name="q"
             placeholder="Search by Transaction Hash / Address / Block Number"
-            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-5 py-4 text-lg focus:outline-none focus:border-blue-500 transition"
+            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 sm:px-5 py-3.5 sm:py-4 text-base sm:text-lg focus:outline-none focus:border-blue-500 transition"
           />
         </form>
 
@@ -176,6 +176,9 @@ export default function Home() {
           <div className="flex justify-center gap-6 mb-3">
             <Link href="/" className="hover:text-white transition">
               Home
+            </Link>
+            <Link href="/contracts" className="hover:text-white transition">
+              Contracts
             </Link>
             <Link href="/nodes" className="hover:text-white transition">
               RPC Nodes
