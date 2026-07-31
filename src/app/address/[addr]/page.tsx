@@ -1,5 +1,4 @@
 import { publicClient } from "@/lib/rpc";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatEther, isAddress, type Address } from "viem";
 
@@ -18,13 +17,22 @@ export default async function AddressPage({
 
   let balance = BigInt(0);
   let transactionCount = BigInt(0);
+  let code: `0x${string}` | undefined = undefined;
+  let isContract = false;
 
   try {
-    balance = await publicClient.getBalance({ address: addr as Address });
-    const count = await publicClient.getTransactionCount({
-      address: addr as Address,
-    });
+    const address = addr as Address;
+
+    const [bal, count, contractCode] = await Promise.all([
+      publicClient.getBalance({ address }),
+      publicClient.getTransactionCount({ address }),
+      publicClient.getCode({ address }),
+    ]);
+
+    balance = bal;
     transactionCount = BigInt(count);
+    code = contractCode;
+    isContract = !!contractCode && contractCode !== "0x";
   } catch {
     notFound();
   }
@@ -33,16 +41,27 @@ export default async function AddressPage({
     <main className="min-h-screen bg-gray-950 text-white">
       <div className="max-w-6xl mx-auto px-4 py-10">
         <div className="mb-8">
-          <Link href="/" className="text-blue-400 hover:underline text-sm">
-            ← Back to Home
-          </Link>
-          <h1 className="text-3xl font-bold mt-3">Address</h1>
+          <h1 className="text-3xl font-bold">Address</h1>
           <p className="font-mono text-sm text-gray-400 mt-2 break-all">
             {addr}
           </p>
         </div>
 
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-6">
+        {/* Type Badge */}
+        <div className="mb-6">
+          <span
+            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+              isContract
+                ? "bg-purple-900/50 text-purple-300"
+                : "bg-blue-900/50 text-blue-300"
+            }`}
+          >
+            {isContract ? "Contract" : "Wallet / EOA"}
+          </span>
+        </div>
+
+        {/* Main Stats */}
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <p className="text-gray-500 text-sm">Balance</p>
@@ -61,9 +80,30 @@ export default async function AddressPage({
           </div>
         </div>
 
-        <div className="mt-8 p-4 bg-gray-900/50 border border-gray-800 rounded-xl text-gray-400 text-sm">
-          Note: Full transaction history for this address will be added in a
-          future update (requires indexing).
+        {/* Contract Code Preview */}
+        {isContract && code && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-3">Contract Bytecode</h2>
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+              <pre className="text-xs font-mono text-gray-300 overflow-x-auto max-h-48">
+                {code.slice(0, 500)}
+                {code.length > 500 ? "..." : ""}
+              </pre>
+              <p className="text-gray-500 text-xs mt-2">
+                Showing first 500 characters of bytecode
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Note */}
+        <div className="p-4 bg-gray-900/50 border border-gray-800 rounded-xl text-gray-400 text-sm">
+          <p className="font-medium text-gray-300 mb-1">Note</p>
+          <p>
+            Full transaction history and token holdings require an indexer. This
+            page currently shows live balance, nonce, and contract status
+            directly from the RPC.
+          </p>
         </div>
       </div>
     </main>
