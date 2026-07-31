@@ -10,10 +10,13 @@ export default function Home() {
   const [latestTxs, setLatestTxs] = useState<Transaction[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [lastUpdate, setLastUpdate] = useState<string>("");
+  const [currentBlock, setCurrentBlock] = useState<string>("-");
+  const [txInLatest, setTxInLatest] = useState<number>(0);
 
   const fetchData = useCallback(async () => {
     try {
       const currentBlockNumber = await publicClient.getBlockNumber();
+      setCurrentBlock(currentBlockNumber.toString());
 
       const blockPromises = [];
       for (let i = 0; i < 8; i++) {
@@ -28,9 +31,12 @@ export default function Home() {
       const blocks = await Promise.all(blockPromises);
       setLatestBlocks(blocks);
 
-      // Collect recent transactions from the latest blocks
+      // Collect recent transactions
       const txs: Transaction[] = [];
+      let totalTxs = 0;
+
       for (const block of blocks) {
+        totalTxs += block.transactions.length;
         for (const tx of block.transactions) {
           if (typeof tx !== "string") {
             txs.push(tx);
@@ -41,6 +47,7 @@ export default function Home() {
       }
 
       setLatestTxs(txs);
+      setTxInLatest(totalTxs);
       setErrorMessage("");
       setLastUpdate(new Date().toLocaleTimeString());
     } catch (err) {
@@ -62,9 +69,9 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
-      <div className="max-w-7xl mx-auto px-4 py-10">
+      <div className="max-w-7xl mx-auto px-4 py-8 sm:py-10">
         {/* Search Bar */}
-        <form action="/search" className="mb-10">
+        <form action="/search" className="mb-8">
           <input
             name="q"
             placeholder="Search by Transaction Hash / Address / Block Number"
@@ -72,10 +79,30 @@ export default function Home() {
           />
         </form>
 
-        {/* Status */}
-        <div className="flex justify-between items-center mb-6 text-sm text-gray-500">
-          <p>Showing latest blocks & transactions</p>
-          <p>Last update: {lastUpdate || "..."}</p>
+        {/* Stats Bar */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <p className="text-gray-500 text-xs sm:text-sm">Current Block</p>
+            <p className="text-lg sm:text-xl font-semibold mt-1">
+              {currentBlock}
+            </p>
+          </div>
+
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <p className="text-gray-500 text-xs sm:text-sm">
+              Txs in Last 8 Blocks
+            </p>
+            <p className="text-lg sm:text-xl font-semibold mt-1">
+              {txInLatest}
+            </p>
+          </div>
+
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 col-span-2 sm:col-span-1">
+            <p className="text-gray-500 text-xs sm:text-sm">Last Update</p>
+            <p className="text-lg sm:text-xl font-semibold mt-1">
+              {lastUpdate || "..."}
+            </p>
+          </div>
         </div>
 
         {errorMessage && (
@@ -93,14 +120,14 @@ export default function Home() {
               {latestBlocks.map((block) => (
                 <div
                   key={block.hash}
-                  className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl px-5 py-4 hover:border-gray-600 transition"
+                  className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl px-4 sm:px-5 py-3.5 sm:py-4 hover:border-gray-600 transition"
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3 sm:gap-4">
                     <Link
                       href={`/block/${block.number}`}
                       className="text-blue-400 hover:text-blue-300 font-medium"
                     >
-                      Block #{block.number?.toString()}
+                      #{block.number?.toString()}
                     </Link>
                     <span className="text-gray-500 text-sm">
                       {block.transactions.length} tx
@@ -130,27 +157,27 @@ export default function Home() {
               {latestTxs.map((tx) => (
                 <div
                   key={tx.hash}
-                  className="bg-gray-900 border border-gray-800 rounded-xl px-5 py-4 hover:border-gray-600 transition"
+                  className="bg-gray-900 border border-gray-800 rounded-xl px-4 sm:px-5 py-3.5 sm:py-4 hover:border-gray-600 transition"
                 >
                   <div className="flex justify-between items-start gap-3">
                     <Link
                       href={`/tx/${tx.hash}`}
                       className="text-blue-400 hover:text-blue-300 font-mono text-sm"
                     >
-                      {tx.hash.slice(0, 14)}...{tx.hash.slice(-12)}
+                      {tx.hash.slice(0, 12)}...{tx.hash.slice(-10)}
                     </Link>
                     <span className="text-sm text-gray-400 whitespace-nowrap">
                       {formatEther(tx.value)} BDAG
                     </span>
                   </div>
-                  <div className="mt-2 text-xs text-gray-500 flex gap-4">
+                  <div className="mt-2 text-xs text-gray-500 flex flex-wrap gap-x-4 gap-y-1">
                     <span>
                       From:{" "}
                       <Link
                         href={`/address/${tx.from}`}
                         className="hover:underline"
                       >
-                        {tx.from.slice(0, 8)}...{tx.from.slice(-6)}
+                        {tx.from.slice(0, 6)}...{tx.from.slice(-4)}
                       </Link>
                     </span>
                     {tx.to && (
@@ -160,7 +187,7 @@ export default function Home() {
                           href={`/address/${tx.to}`}
                           className="hover:underline"
                         >
-                          {tx.to.slice(0, 8)}...{tx.to.slice(-6)}
+                          {tx.to.slice(0, 6)}...{tx.to.slice(-4)}
                         </Link>
                       </span>
                     )}
