@@ -24,6 +24,12 @@ export default function Navbar() {
               Home
             </Link>
             <Link
+              href="/contracts"
+              className="text-gray-300 hover:text-white transition"
+            >
+              Contracts
+            </Link>
+            <Link
               href="/nodes"
               className="text-gray-300 hover:text-white transition"
             >
