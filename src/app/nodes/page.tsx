@@ -2,97 +2,41 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { createPublicClient, http, defineChain } from "viem";
-
-const RPC_URLS = [
-  "https://rpc.bdag-us.org",
-  "https://rpc.welshdag.trade",
-  "https://rpc.dvdmining.com",
-  "https://rpc.blockdag.engineering",
-  "https://rpc.capedag.com",
-];
-
-const blockdag = defineChain({
-  id: 1404,
-  name: "BlockDAG",
-  nativeCurrency: { name: "BDAG", symbol: "BDAG", decimals: 18 },
-  rpcUrls: { default: { http: RPC_URLS } },
-});
 
 type NodeStatus = {
   url: string;
   status: "online" | "offline" | "checking";
   chainId?: number;
-  blockNumber?: bigint;
+  blockNumber?: string;
   latency?: number;
   error?: string;
 };
 
 export default function NodesPage() {
-  const [nodes, setNodes] = useState<NodeStatus[]>(
-    RPC_URLS.map((url) => ({ url, status: "checking" })),
-  );
-  const [highestBlock, setHighestBlock] = useState<bigint>(BigInt(0));
+  const [nodes, setNodes] = useState<NodeStatus[]>([]);
+  const [highestBlock, setHighestBlock] = useState<string>("0");
   const [lastChecked, setLastChecked] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const checkNodes = useCallback(async () => {
-    const results: NodeStatus[] = [];
+    try {
+      const res = await fetch("/api/check-nodes");
+      const data = await res.json();
 
-    for (const url of RPC_URLS) {
-      const start = Date.now();
-      try {
-        const client = createPublicClient({
-          chain: blockdag,
-          transport: http(url, { timeout: 6000 }),
-        });
-
-        const [chainId, blockNumber] = await Promise.all([
-          client.getChainId(),
-          client.getBlockNumber(),
-        ]);
-
-        const latency = Date.now() - start;
-
-        results.push({
-          url,
-          status: "online",
-          chainId,
-          blockNumber,
-          latency,
-        });
-      } catch (err: unknown) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Failed to connect";
-
-        results.push({
-          url,
-          status: "offline",
-          error: errorMessage,
-        });
-      }
+      setNodes(data.nodes);
+      setHighestBlock(data.highestBlock);
+      setLastChecked(new Date(data.checkedAt).toLocaleTimeString());
+      setLoading(false);
+    } catch (err) {
+      console.error(err);
+      setLoading(false);
     }
-
-    // Find highest block
-    let maxBlock = BigInt(0);
-    for (const node of results) {
-      if (node.blockNumber && node.blockNumber > maxBlock) {
-        maxBlock = node.blockNumber;
-      }
-    }
-
-    setHighestBlock(maxBlock);
-    setNodes(results);
-    setLastChecked(new Date().toLocaleTimeString());
   }, []);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     checkNodes();
-
-    const interval = setInterval(() => {
-      checkNodes();
-    }, 15000);
-
+    const interval = setInterval(checkNodes, 15000);
     return () => clearInterval(interval);
   }, [checkNodes]);
 
@@ -113,11 +57,15 @@ export default function NodesPage() {
           </p>
         </div>
 
+        {loading && nodes.length === 0 && (
+          <p className="text-gray-500">Checking nodes...</p>
+        )}
+
         <div className="space-y-4">
           {nodes.map((node) => {
             const behind =
-              node.blockNumber && highestBlock > BigInt(0)
-                ? highestBlock - node.blockNumber
+              node.blockNumber && highestBlock !== "0"
+                ? BigInt(highestBlock) - BigInt(node.blockNumber)
                 : null;
 
             return (
@@ -133,14 +81,11 @@ export default function NodesPage() {
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           node.status === "online"
                             ? "bg-green-900/50 text-green-400"
-                            : node.status === "offline"
-                              ? "bg-red-900/50 text-red-400"
-                              : "bg-yellow-900/50 text-yellow-400"
+                            : "bg-red-900/50 text-red-400"
                         }`}
                       >
                         {node.status.toUpperCase()}
                       </span>
-
                       {node.latency && (
                         <span className="text-xs text-gray-500">
                           {node.latency} ms
@@ -170,7 +115,7 @@ export default function NodesPage() {
                         <p>
                           Block Height:{" "}
                           <span className="font-medium">
-                            {node.blockNumber?.toString()}
+                            {node.blockNumber}
                           </span>
                         </p>
                         {behind !== null && (
