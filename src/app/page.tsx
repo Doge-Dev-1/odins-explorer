@@ -15,7 +15,6 @@ export default function Home() {
     try {
       const currentBlockNumber = await publicClient.getBlockNumber();
 
-      // Fetch last 8 blocks
       const blockPromises = [];
       for (let i = 0; i < 8; i++) {
         blockPromises.push(
@@ -29,7 +28,6 @@ export default function Home() {
       const blocks = await Promise.all(blockPromises);
       setLatestBlocks(blocks);
 
-      // Collect recent transactions from these blocks
       const txs: Transaction[] = [];
       for (const block of blocks) {
         for (const tx of block.transactions) {
@@ -89,7 +87,6 @@ export default function Home() {
           />
         </form>
 
-        {/* Error Message */}
         {errorMessage && (
           <div className="mb-8 p-4 bg-red-900/40 border border-red-700 rounded-xl text-red-300">
             {errorMessage}
@@ -180,6 +177,19 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+        {/* Footer */}
+        <footer className="mt-16 pt-8 border-t border-gray-800 text-center text-gray-500 text-sm">
+          <div className="flex justify-center gap-6 mb-3">
+            <Link href="/" className="hover:text-white transition">
+              Home
+            </Link>
+            <Link href="/nodes" className="hover:text-white transition">
+              RPC Nodes
+            </Link>
+          </div>
+          <p>Odin&apos;s Explorer — Independent BlockDAG Explorer</p>
+        </footer>
       </div>
     </main>
   );
