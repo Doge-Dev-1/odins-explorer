@@ -10,11 +10,15 @@ type NodeStatus = {
   blockNumber?: string;
   latency?: number;
   error?: string;
+  blockHash?: string | null;
+  sameFork?: boolean | null;
 };
 
 export default function NodesPage() {
   const [nodes, setNodes] = useState<NodeStatus[]>([]);
   const [highestBlock, setHighestBlock] = useState<string>("0");
+  const [compareHeight, setCompareHeight] = useState<string>("-");
+  const [majorityHash, setMajorityHash] = useState<string | null>(null);
   const [lastChecked, setLastChecked] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -25,6 +29,8 @@ export default function NodesPage() {
 
       setNodes(data.nodes);
       setHighestBlock(data.highestBlock);
+      setCompareHeight(data.compareHeight);
+      setMajorityHash(data.majorityHash);
       setLastChecked(new Date(data.checkedAt).toLocaleTimeString());
       setLoading(false);
     } catch (err) {
@@ -36,7 +42,7 @@ export default function NodesPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     checkNodes();
-    const interval = setInterval(checkNodes, 15000);
+    const interval = setInterval(checkNodes, 20000);
     return () => clearInterval(interval);
   }, [checkNodes]);
 
@@ -49,13 +55,25 @@ export default function NodesPage() {
           </Link>
           <h1 className="text-3xl font-bold mt-3">RPC Nodes Status</h1>
           <p className="text-gray-400 mt-1">
-            Live status of the RPC endpoints used by Odin&apos;s Explorer
+            Live status + fork check of the RPC endpoints used by Odin&apos;s
+            Explorer
           </p>
           <p className="text-sm text-gray-500 mt-2">
-            Last checked: {lastChecked || "Loading..."} • Auto-refreshes every
-            15 seconds
+            Last checked: {lastChecked || "Loading..."} • Comparing block #
+            {compareHeight}
           </p>
         </div>
+
+        {majorityHash && (
+          <div className="mb-6 p-4 bg-gray-900 border border-gray-800 rounded-xl text-sm">
+            <p className="text-gray-400">
+              Majority fork hash at block #{compareHeight}:
+            </p>
+            <p className="font-mono text-xs break-all mt-1 text-green-400">
+              {majorityHash}
+            </p>
+          </div>
+        )}
 
         {loading && nodes.length === 0 && (
           <p className="text-gray-500">Checking nodes...</p>
@@ -76,7 +94,7 @@ export default function NodesPage() {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
                     <p className="font-mono text-sm break-all">{node.url}</p>
-                    <div className="flex items-center gap-3 mt-2">
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           node.status === "online"
@@ -86,6 +104,18 @@ export default function NodesPage() {
                       >
                         {node.status.toUpperCase()}
                       </span>
+
+                      {node.sameFork === true && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900/50 text-green-400">
+                          SAME FORK
+                        </span>
+                      )}
+                      {node.sameFork === false && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-900/50 text-red-400">
+                          DIFFERENT FORK
+                        </span>
+                      )}
+
                       {node.latency && (
                         <span className="text-xs text-gray-500">
                           {node.latency} ms
@@ -131,6 +161,12 @@ export default function NodesPage() {
                               : `${behind.toString()} block${
                                   behind === BigInt(1) ? "" : "s"
                                 } behind`}
+                          </p>
+                        )}
+                        {node.blockHash && (
+                          <p className="text-xs text-gray-500 font-mono truncate max-w-xs md:max-w-sm">
+                            Hash: {node.blockHash.slice(0, 10)}...
+                            {node.blockHash.slice(-8)}
                           </p>
                         )}
                       </>
