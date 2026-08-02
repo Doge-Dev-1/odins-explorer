@@ -2,6 +2,7 @@ import { publicClient } from "@/lib/rpc";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatEther, formatGwei, type Hash } from "viem";
+import CopyButton from "@/components/CopyButton";
 
 export const dynamic = "force-dynamic";
 
@@ -32,13 +33,15 @@ export default async function TransactionPage({
       <div className="max-w-6xl mx-auto px-4 py-10">
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Transaction Details</h1>
-          <p className="text-gray-400 text-sm mt-1 font-mono break-all">
-            {tx.hash}
-          </p>
+          <div className="flex items-center mt-2">
+            <p className="text-gray-400 text-sm font-mono break-all">
+              {tx.hash}
+            </p>
+            <CopyButton text={tx.hash} />
+          </div>
         </div>
 
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-6">
-          {/* Status + Block */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <p className="text-gray-500 text-sm">Status</p>
@@ -64,34 +67,38 @@ export default async function TransactionPage({
             </div>
           </div>
 
-          {/* From / To */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <p className="text-gray-500 text-sm">From</p>
-              <Link
-                href={`/address/${tx.from}`}
-                className="mt-1 text-blue-400 hover:underline font-mono text-sm break-all"
-              >
-                {tx.from}
-              </Link>
+              <div className="flex items-center mt-1">
+                <Link
+                  href={`/address/${tx.from}`}
+                  className="text-blue-400 hover:underline font-mono text-sm break-all"
+                >
+                  {tx.from}
+                </Link>
+                <CopyButton text={tx.from} />
+              </div>
             </div>
 
             <div>
               <p className="text-gray-500 text-sm">To</p>
               {tx.to ? (
-                <Link
-                  href={`/address/${tx.to}`}
-                  className="mt-1 text-blue-400 hover:underline font-mono text-sm break-all"
-                >
-                  {tx.to}
-                </Link>
+                <div className="flex items-center mt-1">
+                  <Link
+                    href={`/address/${tx.to}`}
+                    className="text-blue-400 hover:underline font-mono text-sm break-all"
+                  >
+                    {tx.to}
+                  </Link>
+                  <CopyButton text={tx.to} />
+                </div>
               ) : (
                 <p className="mt-1 text-yellow-400">Contract Creation</p>
               )}
             </div>
           </div>
 
-          {/* Value + Fee */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <p className="text-gray-500 text-sm">Value</p>
@@ -107,7 +114,6 @@ export default async function TransactionPage({
             </div>
           </div>
 
-          {/* Gas details */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <p className="text-gray-500 text-sm">Gas Limit</p>
@@ -127,7 +133,6 @@ export default async function TransactionPage({
             </div>
           </div>
 
-          {/* Nonce + Input */}
           <div>
             <p className="text-gray-500 text-sm">Nonce</p>
             <p className="mt-1">{tx.nonce}</p>

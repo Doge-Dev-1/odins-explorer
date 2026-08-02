@@ -1,6 +1,7 @@
 import { publicClient } from "@/lib/rpc";
 import { notFound } from "next/navigation";
 import { formatEther, isAddress, type Address } from "viem";
+import CopyButton from "@/components/CopyButton";
 
 export const dynamic = "force-dynamic";
 
@@ -42,12 +43,12 @@ export default async function AddressPage({
       <div className="max-w-6xl mx-auto px-4 py-10">
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Address</h1>
-          <p className="font-mono text-sm text-gray-400 mt-2 break-all">
-            {addr}
-          </p>
+          <div className="flex items-center mt-2">
+            <p className="font-mono text-sm text-gray-400 break-all">{addr}</p>
+            <CopyButton text={addr} />
+          </div>
         </div>
 
-        {/* Type Badge */}
         <div className="mb-6">
           <span
             className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
@@ -60,7 +61,6 @@ export default async function AddressPage({
           </span>
         </div>
 
-        {/* Main Stats */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -80,7 +80,6 @@ export default async function AddressPage({
           </div>
         </div>
 
-        {/* Contract Code Preview */}
         {isContract && code && (
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-3">Contract Bytecode</h2>
@@ -96,7 +95,6 @@ export default async function AddressPage({
           </div>
         )}
 
-        {/* Note */}
         <div className="p-4 bg-gray-900/50 border border-gray-800 rounded-xl text-gray-400 text-sm">
           <p className="font-medium text-gray-300 mb-1">Note</p>
           <p>
