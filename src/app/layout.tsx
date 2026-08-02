@@ -26,7 +26,7 @@ export const metadata: Metadata = {
       "Independent BlockDAG blockchain explorer – blocks, transactions, addresses and live RPC status.",
   },
   icons: {
-    icon: "/favicon.ico",
+    icon: "/icon.ico",
   },
 };
 
