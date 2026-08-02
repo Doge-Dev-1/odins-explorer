@@ -6,6 +6,29 @@ import Link from "next/link";
 import { type Block, type Transaction, formatEther, formatGwei } from "viem";
 import CopyButton from "@/components/CopyButton";
 
+function SkeletonCard() {
+  return (
+    <div className="bg-gray-900 border border-gray-800 rounded-xl px-5 py-4 animate-pulse">
+      <div className="flex justify-between items-center">
+        <div className="h-4 bg-gray-800 rounded w-32"></div>
+        <div className="h-4 bg-gray-800 rounded w-16"></div>
+      </div>
+    </div>
+  );
+}
+
+function SkeletonTxCard() {
+  return (
+    <div className="bg-gray-900 border border-gray-800 rounded-xl px-5 py-4 animate-pulse">
+      <div className="flex justify-between items-center mb-3">
+        <div className="h-4 bg-gray-800 rounded w-40"></div>
+        <div className="h-4 bg-gray-800 rounded w-20"></div>
+      </div>
+      <div className="h-3 bg-gray-800 rounded w-48"></div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [latestBlocks, setLatestBlocks] = useState<Block[]>([]);
   const [latestTxs, setLatestTxs] = useState<Transaction[]>([]);
@@ -14,6 +37,7 @@ export default function Home() {
   const [currentBlock, setCurrentBlock] = useState<string>("-");
   const [txInLatest, setTxInLatest] = useState<number>(0);
   const [gasPrice, setGasPrice] = useState<string>("-");
+  const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     try {
@@ -56,9 +80,11 @@ export default function Home() {
       setTxInLatest(totalTxs);
       setErrorMessage("");
       setLastUpdate(new Date().toLocaleTimeString());
+      setLoading(false);
     } catch (err) {
       setErrorMessage("Could not connect to any BlockDAG RPC.");
       console.error(err);
+      setLoading(false);
     }
   }, []);
 
@@ -90,14 +116,24 @@ export default function Home() {
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <p className="text-gray-500 text-xs sm:text-sm">Current Block</p>
             <p className="text-lg sm:text-xl font-semibold mt-1">
-              {currentBlock}
+              {loading ? (
+                <span className="inline-block h-6 w-20 bg-gray-800 rounded animate-pulse"></span>
+              ) : (
+                currentBlock
+              )}
             </p>
           </div>
 
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <p className="text-gray-500 text-xs sm:text-sm">Gas Price</p>
             <p className="text-lg sm:text-xl font-semibold mt-1">
-              {gasPrice} <span className="text-sm text-gray-400">Gwei</span>
+              {loading ? (
+                <span className="inline-block h-6 w-16 bg-gray-800 rounded animate-pulse"></span>
+              ) : (
+                <>
+                  {gasPrice} <span className="text-sm text-gray-400">Gwei</span>
+                </>
+              )}
             </p>
           </div>
 
@@ -106,14 +142,22 @@ export default function Home() {
               Txs in Last 8 Blocks
             </p>
             <p className="text-lg sm:text-xl font-semibold mt-1">
-              {txInLatest}
+              {loading ? (
+                <span className="inline-block h-6 w-12 bg-gray-800 rounded animate-pulse"></span>
+              ) : (
+                txInLatest
+              )}
             </p>
           </div>
 
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <p className="text-gray-500 text-xs sm:text-sm">Last Update</p>
             <p className="text-lg sm:text-xl font-semibold mt-1">
-              {lastUpdate || "..."}
+              {loading ? (
+                <span className="inline-block h-6 w-16 bg-gray-800 rounded animate-pulse"></span>
+              ) : (
+                lastUpdate || "..."
+              )}
             </p>
           </div>
         </div>
@@ -130,30 +174,34 @@ export default function Home() {
           <div>
             <h2 className="text-xl font-semibold mb-4">Latest Blocks</h2>
             <div className="space-y-3">
-              {latestBlocks.map((block) => (
-                <div
-                  key={block.hash}
-                  className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl px-4 sm:px-5 py-3.5 sm:py-4 hover:border-gray-600 transition"
-                >
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <Link
-                      href={`/block/${block.number}`}
-                      className="text-blue-400 hover:text-blue-300 font-medium"
+              {loading
+                ? Array.from({ length: 8 }).map((_, i) => (
+                    <SkeletonCard key={i} />
+                  ))
+                : latestBlocks.map((block) => (
+                    <div
+                      key={block.hash}
+                      className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl px-4 sm:px-5 py-3.5 sm:py-4 hover:border-gray-600 transition"
                     >
-                      #{block.number?.toString()}
-                    </Link>
-                    <span className="text-gray-500 text-sm">
-                      {block.transactions.length} tx
-                      {block.transactions.length !== 1 ? "s" : ""}
-                    </span>
-                  </div>
-                  <div className="text-sm text-gray-400">
-                    {new Date(
-                      Number(block.timestamp) * 1000,
-                    ).toLocaleTimeString()}
-                  </div>
-                </div>
-              ))}
+                      <div className="flex items-center gap-3 sm:gap-4">
+                        <Link
+                          href={`/block/${block.number}`}
+                          className="text-blue-400 hover:text-blue-300 font-medium"
+                        >
+                          #{block.number?.toString()}
+                        </Link>
+                        <span className="text-gray-500 text-sm">
+                          {block.transactions.length} tx
+                          {block.transactions.length !== 1 ? "s" : ""}
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-400">
+                        {new Date(
+                          Number(block.timestamp) * 1000,
+                        ).toLocaleTimeString()}
+                      </div>
+                    </div>
+                  ))}
             </div>
           </div>
 
@@ -161,57 +209,61 @@ export default function Home() {
           <div>
             <h2 className="text-xl font-semibold mb-4">Latest Transactions</h2>
             <div className="space-y-3">
-              {latestTxs.length === 0 && !errorMessage && (
+              {loading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <SkeletonTxCard key={i} />
+                ))
+              ) : latestTxs.length === 0 && !errorMessage ? (
                 <p className="text-gray-500 text-sm">
                   No transactions in the most recent blocks
                 </p>
-              )}
-
-              {latestTxs.map((tx) => (
-                <div
-                  key={tx.hash}
-                  className="bg-gray-900 border border-gray-800 rounded-xl px-4 sm:px-5 py-3.5 sm:py-4 hover:border-gray-600 transition"
-                >
-                  <div className="flex justify-between items-start gap-3">
-                    <div className="flex items-center">
-                      <Link
-                        href={`/tx/${tx.hash}`}
-                        className="text-blue-400 hover:text-blue-300 font-mono text-sm"
-                      >
-                        {tx.hash.slice(0, 12)}...{tx.hash.slice(-10)}
-                      </Link>
-                      <CopyButton text={tx.hash} />
-                    </div>
-                    <span className="text-sm text-gray-400 whitespace-nowrap">
-                      {formatEther(tx.value)} BDAG
-                    </span>
-                  </div>
-                  <div className="mt-2 text-xs text-gray-500 flex flex-wrap gap-x-4 gap-y-1">
-                    <span className="flex items-center">
-                      From:{" "}
-                      <Link
-                        href={`/address/${tx.from}`}
-                        className="hover:underline ml-1"
-                      >
-                        {tx.from.slice(0, 6)}...{tx.from.slice(-4)}
-                      </Link>
-                      <CopyButton text={tx.from} />
-                    </span>
-                    {tx.to && (
-                      <span className="flex items-center">
-                        To:{" "}
+              ) : (
+                latestTxs.map((tx) => (
+                  <div
+                    key={tx.hash}
+                    className="bg-gray-900 border border-gray-800 rounded-xl px-4 sm:px-5 py-3.5 sm:py-4 hover:border-gray-600 transition"
+                  >
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex items-center">
                         <Link
-                          href={`/address/${tx.to}`}
+                          href={`/tx/${tx.hash}`}
+                          className="text-blue-400 hover:text-blue-300 font-mono text-sm"
+                        >
+                          {tx.hash.slice(0, 12)}...{tx.hash.slice(-10)}
+                        </Link>
+                        <CopyButton text={tx.hash} />
+                      </div>
+                      <span className="text-sm text-gray-400 whitespace-nowrap">
+                        {formatEther(tx.value)} BDAG
+                      </span>
+                    </div>
+                    <div className="mt-2 text-xs text-gray-500 flex flex-wrap gap-x-4 gap-y-1">
+                      <span className="flex items-center">
+                        From:{" "}
+                        <Link
+                          href={`/address/${tx.from}`}
                           className="hover:underline ml-1"
                         >
-                          {tx.to.slice(0, 6)}...{tx.to.slice(-4)}
+                          {tx.from.slice(0, 6)}...{tx.from.slice(-4)}
                         </Link>
-                        <CopyButton text={tx.to} />
+                        <CopyButton text={tx.from} />
                       </span>
-                    )}
+                      {tx.to && (
+                        <span className="flex items-center">
+                          To:{" "}
+                          <Link
+                            href={`/address/${tx.to}`}
+                            className="hover:underline ml-1"
+                          >
+                            {tx.to.slice(0, 6)}...{tx.to.slice(-4)}
+                          </Link>
+                          <CopyButton text={tx.to} />
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>
