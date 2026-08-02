@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { publicClient } from "@/lib/rpc";
 import Link from "next/link";
-import { type Block, type Transaction, formatEther } from "viem";
+import { type Block, type Transaction, formatEther, formatGwei } from "viem";
+import CopyButton from "@/components/CopyButton";
 
 export default function Home() {
   const [latestBlocks, setLatestBlocks] = useState<Block[]>([]);
@@ -12,11 +13,17 @@ export default function Home() {
   const [lastUpdate, setLastUpdate] = useState<string>("");
   const [currentBlock, setCurrentBlock] = useState<string>("-");
   const [txInLatest, setTxInLatest] = useState<number>(0);
+  const [gasPrice, setGasPrice] = useState<string>("-");
 
   const fetchData = useCallback(async () => {
     try {
-      const currentBlockNumber = await publicClient.getBlockNumber();
+      const [currentBlockNumber, currentGasPrice] = await Promise.all([
+        publicClient.getBlockNumber(),
+        publicClient.getGasPrice(),
+      ]);
+
       setCurrentBlock(currentBlockNumber.toString());
+      setGasPrice(formatGwei(currentGasPrice));
 
       const blockPromises = [];
       for (let i = 0; i < 8; i++) {
@@ -31,7 +38,6 @@ export default function Home() {
       const blocks = await Promise.all(blockPromises);
       setLatestBlocks(blocks);
 
-      // Collect recent transactions
       const txs: Transaction[] = [];
       let totalTxs = 0;
 
@@ -80,11 +86,18 @@ export default function Home() {
         </form>
 
         {/* Stats Bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <p className="text-gray-500 text-xs sm:text-sm">Current Block</p>
             <p className="text-lg sm:text-xl font-semibold mt-1">
               {currentBlock}
+            </p>
+          </div>
+
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <p className="text-gray-500 text-xs sm:text-sm">Gas Price</p>
+            <p className="text-lg sm:text-xl font-semibold mt-1">
+              {gasPrice} <span className="text-sm text-gray-400">Gwei</span>
             </p>
           </div>
 
@@ -97,7 +110,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 col-span-2 sm:col-span-1">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <p className="text-gray-500 text-xs sm:text-sm">Last Update</p>
             <p className="text-lg sm:text-xl font-semibold mt-1">
               {lastUpdate || "..."}
@@ -160,35 +173,40 @@ export default function Home() {
                   className="bg-gray-900 border border-gray-800 rounded-xl px-4 sm:px-5 py-3.5 sm:py-4 hover:border-gray-600 transition"
                 >
                   <div className="flex justify-between items-start gap-3">
-                    <Link
-                      href={`/tx/${tx.hash}`}
-                      className="text-blue-400 hover:text-blue-300 font-mono text-sm"
-                    >
-                      {tx.hash.slice(0, 12)}...{tx.hash.slice(-10)}
-                    </Link>
+                    <div className="flex items-center">
+                      <Link
+                        href={`/tx/${tx.hash}`}
+                        className="text-blue-400 hover:text-blue-300 font-mono text-sm"
+                      >
+                        {tx.hash.slice(0, 12)}...{tx.hash.slice(-10)}
+                      </Link>
+                      <CopyButton text={tx.hash} />
+                    </div>
                     <span className="text-sm text-gray-400 whitespace-nowrap">
                       {formatEther(tx.value)} BDAG
                     </span>
                   </div>
                   <div className="mt-2 text-xs text-gray-500 flex flex-wrap gap-x-4 gap-y-1">
-                    <span>
+                    <span className="flex items-center">
                       From:{" "}
                       <Link
                         href={`/address/${tx.from}`}
-                        className="hover:underline"
+                        className="hover:underline ml-1"
                       >
                         {tx.from.slice(0, 6)}...{tx.from.slice(-4)}
                       </Link>
+                      <CopyButton text={tx.from} />
                     </span>
                     {tx.to && (
-                      <span>
+                      <span className="flex items-center">
                         To:{" "}
                         <Link
                           href={`/address/${tx.to}`}
-                          className="hover:underline"
+                          className="hover:underline ml-1"
                         >
                           {tx.to.slice(0, 6)}...{tx.to.slice(-4)}
                         </Link>
+                        <CopyButton text={tx.to} />
                       </span>
                     )}
                   </div>
