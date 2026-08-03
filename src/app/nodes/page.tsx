@@ -5,20 +5,21 @@ import Link from "next/link";
 
 type NodeStatus = {
   url: string;
-  status: "online" | "offline" | "checking";
+  status: "online" | "offline";
   chainId?: number;
   blockNumber?: string;
   latency?: number;
   error?: string;
   blockHash?: string | null;
   sameFork?: boolean | null;
+  matchedHeights?: number;
+  checkedHeights?: number;
 };
 
 export default function NodesPage() {
   const [nodes, setNodes] = useState<NodeStatus[]>([]);
   const [highestBlock, setHighestBlock] = useState<string>("0");
-  const [compareHeight, setCompareHeight] = useState<string>("-");
-  const [majorityHash, setMajorityHash] = useState<string | null>(null);
+  const [compareHeights, setCompareHeights] = useState<string[]>([]);
   const [lastChecked, setLastChecked] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -29,8 +30,7 @@ export default function NodesPage() {
 
       setNodes(data.nodes);
       setHighestBlock(data.highestBlock);
-      setCompareHeight(data.compareHeight);
-      setMajorityHash(data.majorityHash);
+      setCompareHeights(data.compareHeights || []);
       setLastChecked(new Date(data.checkedAt).toLocaleTimeString());
       setLoading(false);
     } catch (err) {
@@ -46,6 +46,8 @@ export default function NodesPage() {
     return () => clearInterval(interval);
   }, [checkNodes]);
 
+  const hasFork = nodes.some((n) => n.sameFork === false);
+
   return (
     <main className="min-h-screen bg-gray-950 text-white">
       <div className="max-w-6xl mx-auto px-4 py-10">
@@ -55,22 +57,23 @@ export default function NodesPage() {
           </Link>
           <h1 className="text-3xl font-bold mt-3">RPC Nodes Status</h1>
           <p className="text-gray-400 mt-1">
-            Live status + fork check of the RPC endpoints used by Odin&apos;s
-            Explorer
+            Live status and fork detection across public BlockDAG RPC endpoints
           </p>
           <p className="text-sm text-gray-500 mt-2">
-            Last checked: {lastChecked || "Loading..."} • Comparing block #
-            {compareHeight}
+            Last checked: {lastChecked || "Loading..."}
+            {compareHeights.length > 0 && (
+              <> • Comparing heights {compareHeights.join(", ")}</>
+            )}
           </p>
         </div>
 
-        {majorityHash && (
-          <div className="mb-6 p-4 bg-gray-900 border border-gray-800 rounded-xl text-sm">
-            <p className="text-gray-400">
-              Majority fork hash at block #{compareHeight}:
-            </p>
-            <p className="font-mono text-xs break-all mt-1 text-green-400">
-              {majorityHash}
+        {hasFork && (
+          <div className="mb-6 p-4 bg-red-950/60 border border-red-700 rounded-xl text-red-300">
+            <p className="font-semibold">Fork detected</p>
+            <p className="text-sm mt-1">
+              One or more nodes disagree on recent block hashes. Nodes marked
+              DIFFERENT FORK are not on the same chain tip history as the
+              majority.
             </p>
           </div>
         )}
@@ -89,7 +92,9 @@ export default function NodesPage() {
             return (
               <div
                 key={node.url}
-                className="bg-gray-900 border border-gray-800 rounded-xl p-5"
+                className={`bg-gray-900 border rounded-xl p-5 ${
+                  node.sameFork === false ? "border-red-700" : "border-gray-800"
+                }`}
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
@@ -110,8 +115,9 @@ export default function NodesPage() {
                           SAME FORK
                         </span>
                       )}
+
                       {node.sameFork === false && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-900/50 text-red-400">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-600 text-white">
                           DIFFERENT FORK
                         </span>
                       )}
@@ -163,12 +169,14 @@ export default function NodesPage() {
                                 } behind`}
                           </p>
                         )}
-                        {node.blockHash && (
-                          <p className="text-xs text-gray-500 font-mono truncate max-w-xs md:max-w-sm">
-                            Hash: {node.blockHash.slice(0, 10)}...
-                            {node.blockHash.slice(-8)}
-                          </p>
-                        )}
+                        {typeof node.matchedHeights === "number" &&
+                          typeof node.checkedHeights === "number" &&
+                          node.checkedHeights > 0 && (
+                            <p className="text-xs text-gray-500">
+                              Hash match: {node.matchedHeights}/
+                              {node.checkedHeights} checked heights
+                            </p>
+                          )}
                       </>
                     ) : (
                       <p className="text-red-400 text-sm">{node.error}</p>
