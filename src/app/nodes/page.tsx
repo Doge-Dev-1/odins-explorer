@@ -72,8 +72,7 @@ export default function NodesPage() {
             <p className="font-semibold">Fork detected</p>
             <p className="text-sm mt-1">
               One or more nodes disagree on recent block hashes. Nodes marked
-              DIFFERENT FORK are not on the same chain tip history as the
-              majority.
+              DIFFERENT FORK are not on the same chain history as the majority.
             </p>
           </div>
         )}
@@ -89,11 +88,15 @@ export default function NodesPage() {
                 ? BigInt(highestBlock) - BigInt(node.blockNumber)
                 : null;
 
+            const farBehind = behind !== null && behind > BigInt(1000);
+
             return (
               <div
                 key={node.url}
                 className={`bg-gray-900 border rounded-xl p-5 ${
-                  node.sameFork === false ? "border-red-700" : "border-gray-800"
+                  node.sameFork === false || farBehind
+                    ? "border-red-700"
+                    : "border-gray-800"
                 }`}
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -121,6 +124,22 @@ export default function NodesPage() {
                           DIFFERENT FORK
                         </span>
                       )}
+
+                      {node.status === "online" &&
+                        node.sameFork === null &&
+                        farBehind && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-700 text-white">
+                            TOO FAR BEHIND
+                          </span>
+                        )}
+
+                      {node.status === "online" &&
+                        node.sameFork === null &&
+                        !farBehind && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-900/50 text-yellow-400">
+                            FORK UNKNOWN
+                          </span>
+                        )}
 
                       {node.latency && (
                         <span className="text-xs text-gray-500">
@@ -159,7 +178,9 @@ export default function NodesPage() {
                             className={
                               behind === BigInt(0)
                                 ? "text-green-400"
-                                : "text-yellow-400"
+                                : farBehind
+                                  ? "text-red-400 font-medium"
+                                  : "text-yellow-400"
                             }
                           >
                             {behind === BigInt(0)
