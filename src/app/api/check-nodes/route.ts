@@ -7,8 +7,8 @@ const RPC_URLS = [
   "https://rpc.dvdmining.com",
   "https://rpc.blockdag.engineering",
   "https://rpc.capedag.com",
+  "https://rpc.bdagscan.com", // Official (monitoring only)
 ];
-
 const blockdag = defineChain({
   id: 1404,
   name: "BlockDAG",
