@@ -13,6 +13,7 @@ type TxRecord = {
   from_address: string;
   to_address: string | null;
   value: string;
+  timestamp: string | null;
 };
 
 export default async function AddressPage({
@@ -21,6 +22,7 @@ export default async function AddressPage({
   params: Promise<{ addr: string }>;
 }) {
   const { addr } = await params;
+  const normalized = addr.toLowerCase();
 
   if (!isAddress(addr)) {
     notFound();
@@ -41,10 +43,12 @@ export default async function AddressPage({
       publicClient.getCode({ address }),
       supabase
         .from("transactions")
-        .select("*")
-        .or(`from_address.eq.${addr},to_address.eq.${addr}`)
+        .select(
+          "hash, block_number, from_address, to_address, value, timestamp",
+        )
+        .or(`from_address.eq.${normalized},to_address.eq.${normalized}`)
         .order("block_number", { ascending: false })
-        .limit(25),
+        .limit(50),
     ]);
 
     balance = bal;
@@ -107,66 +111,78 @@ export default async function AddressPage({
 
           {transactions.length === 0 ? (
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 text-gray-400 text-sm">
-              No transactions found in the indexed range yet. The indexer is
-              still catching up with recent blocks.
+              No transactions found in the indexed range yet. Backfill is still
+              running and history will grow over time.
             </div>
           ) : (
             <div className="space-y-3">
-              {transactions.map((tx) => (
-                <div
-                  key={tx.hash}
-                  className="bg-gray-900 border border-gray-800 rounded-xl px-5 py-4 hover:border-gray-700 transition"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/tx/${tx.hash}`}
-                        className="text-blue-400 hover:underline font-mono text-sm"
-                      >
-                        {tx.hash.slice(0, 14)}...{tx.hash.slice(-12)}
-                      </Link>
-                      <CopyButton text={tx.hash} />
-                    </div>
+              {transactions.map((tx) => {
+                const isOut = tx.from_address?.toLowerCase() === normalized;
+                const counterparty = isOut ? tx.to_address : tx.from_address;
 
-                    <div className="text-sm text-gray-400">
-                      Block #{tx.block_number}
-                    </div>
-                  </div>
-
-                  <div className="mt-2 text-xs text-gray-500 flex flex-wrap gap-x-4 gap-y-1">
-                    <span>
-                      From:{" "}
-                      <Link
-                        href={`/address/${tx.from_address}`}
-                        className="hover:underline"
-                      >
-                        {tx.from_address.slice(0, 8)}...
-                        {tx.from_address.slice(-6)}
-                      </Link>
-                    </span>
-                    {tx.to_address && (
-                      <span>
-                        To:{" "}
-                        <Link
-                          href={`/address/${tx.to_address}`}
-                          className="hover:underline"
+                return (
+                  <div
+                    key={tx.hash}
+                    className="bg-gray-900 border border-gray-800 rounded-xl px-5 py-4 hover:border-gray-700 transition"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                            isOut
+                              ? "bg-red-900/40 text-red-300"
+                              : "bg-green-900/40 text-green-300"
+                          }`}
                         >
-                          {tx.to_address.slice(0, 8)}...
-                          {tx.to_address.slice(-6)}
+                          {isOut ? "OUT" : "IN"}
+                        </span>
+
+                        <Link
+                          href={`/tx/${tx.hash}`}
+                          className="text-blue-400 hover:underline font-mono text-sm"
+                        >
+                          {tx.hash.slice(0, 14)}...{tx.hash.slice(-12)}
                         </Link>
+                        <CopyButton text={tx.hash} />
+                      </div>
+
+                      <div className="text-sm text-gray-400">
+                        Block #{tx.block_number}
+                      </div>
+                    </div>
+
+                    <div className="mt-2 text-xs text-gray-500 flex flex-wrap gap-x-4 gap-y-1 items-center">
+                      {counterparty ? (
+                        <span>
+                          {isOut ? "To" : "From"}:{" "}
+                          <Link
+                            href={`/address/${counterparty}`}
+                            className="hover:underline"
+                          >
+                            {counterparty.slice(0, 8)}...
+                            {counterparty.slice(-6)}
+                          </Link>
+                        </span>
+                      ) : (
+                        <span className="text-yellow-400">
+                          Contract creation
+                        </span>
+                      )}
+
+                      <span
+                        className={isOut ? "text-red-300" : "text-green-300"}
+                      >
+                        {isOut ? "-" : "+"}
+                        {formatEther(BigInt(tx.value || "0"))} BDAG
                       </span>
-                    )}
-                    <span className="text-gray-400">
-                      {formatEther(BigInt(tx.value || "0"))} BDAG
-                    </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* Contract bytecode */}
         {isContract && code && (
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-3">Contract Bytecode</h2>
@@ -180,10 +196,8 @@ export default async function AddressPage({
         )}
 
         <div className="p-4 bg-gray-900/50 border border-gray-800 rounded-xl text-gray-400 text-sm">
-          <p>
-            Showing the most recent transactions found by the indexer.
-            Historical data will grow as the indexer continues running.
-          </p>
+          Showing up to 50 recent indexed transactions for this address. Older
+          history appears as backfill continues.
         </div>
       </div>
     </main>
