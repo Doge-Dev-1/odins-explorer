@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { createPublicClient, http, defineChain } from "viem";
 
 const RPC_URLS = [
-  "https://rpc.bdag-us.org",
+  "https://rpc.west.bdag-us.org",
+  "https://rpc.east.bdag-us.org",
   "https://rpc.welshdag.trade",
   "https://rpc.dvdmining.com",
   "https://rpc.blockdag.engineering",

@@ -11,7 +11,8 @@ export const blockdag = defineChain({
   rpcUrls: {
     default: {
       http: [
-        "https://rpc.bdag-us.org",
+        "https://rpc.east.bdag-us.org",
+        "https://rpc.west.bdag-us.org",
         "https://rpc.welshdag.trade",
         "https://rpc.dvdmining.com",
         "https://rpc.blockdag.engineering",
@@ -24,7 +25,8 @@ export const blockdag = defineChain({
 export const publicClient = createPublicClient({
   chain: blockdag,
   transport: fallback([
-    http("https://rpc.bdag-us.org"),
+    http("https://rpc.east.bdag-us.org"),
+    http("https://rpc.west.bdag-us.org"),
     http("https://rpc.welshdag.trade"),
     http("https://rpc.dvdmining.com"),
     http("https://rpc.blockdag.engineering"),
