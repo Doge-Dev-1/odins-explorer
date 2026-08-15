@@ -4,6 +4,7 @@ import { createPublicClient, http, defineChain } from "viem";
 const RPC_URLS = [
   "https://rpc.west.bdag-us.org",
   "https://rpc.east.bdag-us.org",
+  "https://rpc.cms-mining-pool.net",
   "https://rpc.welshdag.trade",
   "https://rpc.dvdmining.com",
   "https://rpc.blockdag.engineering",

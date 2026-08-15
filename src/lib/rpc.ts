@@ -13,6 +13,7 @@ export const blockdag = defineChain({
       http: [
         "https://rpc.east.bdag-us.org",
         "https://rpc.west.bdag-us.org",
+        "https://rpc.cms-mining-pool.net",
         "https://rpc.welshdag.trade",
         "https://rpc.dvdmining.com",
         "https://rpc.blockdag.engineering",
