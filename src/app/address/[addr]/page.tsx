@@ -1,5 +1,5 @@
 import { publicClient } from "@/lib/rpc";
-import { supabase } from "@/lib/supabase";
+import pool from "@/lib/db";
 import { notFound } from "next/navigation";
 import { formatEther, isAddress, type Address } from "viem";
 import Link from "next/link";
@@ -41,21 +41,21 @@ export default async function AddressPage({
       publicClient.getBalance({ address }),
       publicClient.getTransactionCount({ address }),
       publicClient.getCode({ address }),
-      supabase
-        .from("transactions")
-        .select(
-          "hash, block_number, from_address, to_address, value, timestamp",
-        )
-        .or(`from_address.eq.${normalized},to_address.eq.${normalized}`)
-        .order("block_number", { ascending: false })
-        .limit(50),
+      pool.query(
+        `SELECT hash, block_number, from_address, to_address, value, timestamp
+         FROM transactions
+         WHERE from_address = $1 OR to_address = $1
+         ORDER BY block_number DESC
+         LIMIT 50`,
+        [normalized],
+      ),
     ]);
 
     balance = bal;
     transactionCount = BigInt(count);
     code = contractCode;
     isContract = !!contractCode && contractCode !== "0x";
-    transactions = txResult.data || [];
+    transactions = txResult.rows || [];
   } catch {
     notFound();
   }
@@ -83,7 +83,6 @@ export default async function AddressPage({
           </span>
         </div>
 
-        {/* Stats */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -93,7 +92,6 @@ export default async function AddressPage({
                 <span className="text-lg text-gray-400">BDAG</span>
               </p>
             </div>
-
             <div>
               <p className="text-gray-500 text-sm">Transaction Count (Nonce)</p>
               <p className="text-2xl font-semibold mt-1">
@@ -103,7 +101,6 @@ export default async function AddressPage({
           </div>
         </div>
 
-        {/* Transaction History */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4">
             Recent Transactions ({transactions.length})
@@ -111,8 +108,8 @@ export default async function AddressPage({
 
           {transactions.length === 0 ? (
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 text-gray-400 text-sm">
-              No transactions found in the indexed range yet. Backfill is still
-              running and history will grow over time.
+              No transactions found in the indexed range yet. History grows as
+              the Contabo indexer runs.
             </div>
           ) : (
             <div className="space-y-3">
@@ -136,7 +133,6 @@ export default async function AddressPage({
                         >
                           {isOut ? "OUT" : "IN"}
                         </span>
-
                         <Link
                           href={`/tx/${tx.hash}`}
                           className="text-blue-400 hover:underline font-mono text-sm"
@@ -145,12 +141,10 @@ export default async function AddressPage({
                         </Link>
                         <CopyButton text={tx.hash} />
                       </div>
-
                       <div className="text-sm text-gray-400">
                         Block #{tx.block_number}
                       </div>
                     </div>
-
                     <div className="mt-2 text-xs text-gray-500 flex flex-wrap gap-x-4 gap-y-1 items-center">
                       {counterparty ? (
                         <span>
@@ -168,7 +162,6 @@ export default async function AddressPage({
                           Contract creation
                         </span>
                       )}
-
                       <span
                         className={isOut ? "text-red-300" : "text-green-300"}
                       >
@@ -196,8 +189,8 @@ export default async function AddressPage({
         )}
 
         <div className="p-4 bg-gray-900/50 border border-gray-800 rounded-xl text-gray-400 text-sm">
-          Showing up to 50 recent indexed transactions for this address. Older
-          history appears as backfill continues.
+          Showing up to 50 recent transactions from the Contabo indexer
+          database.
         </div>
       </div>
     </main>
