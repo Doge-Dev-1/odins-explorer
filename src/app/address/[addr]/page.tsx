@@ -4,7 +4,7 @@ import Link from "next/link";
 import CopyButton from "@/components/CopyButton";
 
 export const dynamic = "force-dynamic";
-const API_BASE = "https://dans-gary-thumbnails-markers.trycloudflare.com";
+const API_BASE = "https://api.odinsexplorer.app";
 type TxRecord = {
   hash: string;
   block_number: number;
