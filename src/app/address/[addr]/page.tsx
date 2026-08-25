@@ -5,7 +5,7 @@ import CopyButton from "@/components/CopyButton";
 
 export const dynamic = "force-dynamic";
 
-const API_BASE = "http://169.58.224.44:3000";
+const API_BASE = "http://169.58.224.44";
 
 type TxRecord = {
   hash: string;
