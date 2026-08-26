@@ -1,35 +1,61 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 
-export default function TokensPage() {
+const links = [
+  { href: "/", label: "Home" },
+  { href: "/tokens", label: "Tokens" },
+  { href: "/contracts", label: "Contracts" },
+  { href: "/nodes", label: "RPC Nodes" },
+];
+
+export default function Navbar() {
+  const [open, setOpen] = useState(false);
+
   return (
-    <main className="min-h-screen bg-gray-950 text-white">
-      <div className="max-w-3xl mx-auto px-4 py-10">
-        <h1 className="text-3xl font-bold mb-2">Tokens</h1>
-        <p className="text-gray-400 mb-8">ERC-20 token tracking on BlockDAG</p>
+    <header className="border-b border-gray-800 bg-gray-950/90 backdrop-blur sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
+        <Link href="/" className="font-semibold text-white tracking-tight">
+          Odin&apos;s Explorer
+        </Link>
 
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4 text-sm text-gray-300">
-          <p>
-            Odin&apos;s Explorer indexes standard ERC-20{" "}
-            <span className="font-mono text-xs">Transfer</span> events into its
-            own database.
-          </p>
-          <p>
-            When tokens are deployed and used on-chain, transfers will show on
-            address pages automatically.
-          </p>
-          <ul className="list-disc list-inside text-gray-400 space-y-1">
-            <li>Token transfer history on addresses — ready</li>
-            <li>Token list / holders — coming later</li>
-            <li>Contract verification + Read/Write — planned next</li>
-          </ul>
-        </div>
+        <nav className="hidden sm:flex items-center gap-6 text-sm">
+          {links.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="text-gray-400 hover:text-white transition"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
 
-        <div className="mt-8">
-          <Link href="/" className="text-blue-400 text-sm hover:underline">
-            ← Home
-          </Link>
-        </div>
+        <button
+          type="button"
+          className="sm:hidden text-gray-300 text-sm px-2 py-1 border border-gray-700 rounded"
+          onClick={() => setOpen((v) => !v)}
+          aria-label="Menu"
+        >
+          Menu
+        </button>
       </div>
-    </main>
+
+      {open && (
+        <nav className="sm:hidden border-t border-gray-800 px-4 py-3 flex flex-col gap-3 text-sm">
+          {links.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="text-gray-300 hover:text-white"
+              onClick={() => setOpen(false)}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+      )}
+    </header>
   );
 }
