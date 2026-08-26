@@ -1,187 +1,215 @@
-import { NextResponse } from "next/server";
-import { createPublicClient, http, defineChain } from "viem";
+"use client";
 
-export const runtime = "nodejs";
-export const maxDuration = 60;
+import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 
-const RPC_URLS = [
-  "https://rpc.east.bdag-us.org",
-  "https://rpc.west.bdag-us.org",
-  "https://rpc.welshdag.trade",
-  "https://rpc.dvdmining.com",
-  "https://rpc.blockdag.engineering",
-  "https://rpc.capedag.com",
-  "https://rpc.bdagscan.com",
-];
-
-const blockdag = defineChain({
-  id: 1404,
-  name: "BlockDAG",
-  nativeCurrency: { name: "BDAG", symbol: "BDAG", decimals: 18 },
-  rpcUrls: { default: { http: RPC_URLS } },
-});
-
-type NodeResult = {
+type NodeStatus = {
   url: string;
   status: "online" | "offline";
   chainId?: number;
   blockNumber?: string;
   latency?: number;
   error?: string;
-  blockHash: string | null;
-  sameFork: boolean | null;
-  matchedHeights: number;
-  checkedHeights: number;
-  _hashes?: Record<string, string>;
+  blockHash?: string | null;
+  sameFork?: boolean | null;
+  matchedHeights?: number;
+  checkedHeights?: number;
 };
 
-async function checkOne(url: string): Promise<NodeResult> {
-  const start = Date.now();
-  try {
-    const client = createPublicClient({
-      chain: blockdag,
-      transport: http(url, { timeout: 5000 }),
-    });
+export default function NodesPage() {
+  const [nodes, setNodes] = useState<NodeStatus[]>([]);
+  const [highestBlock, setHighestBlock] = useState("0");
+  const [compareHeights, setCompareHeights] = useState<string[]>([]);
+  const [lastChecked, setLastChecked] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-    const [chainId, blockNumber] = await Promise.all([
-      client.getChainId(),
-      client.getBlockNumber(),
-    ]);
+  const checkNodes = useCallback(async () => {
+    try {
+      const res = await fetch("/api/check-nodes", { cache: "no-store" });
+      const data = await res.json();
 
-    return {
-      url,
-      status: "online",
-      chainId,
-      blockNumber: blockNumber.toString(),
-      latency: Date.now() - start,
-      blockHash: null,
-      sameFork: null,
-      matchedHeights: 0,
-      checkedHeights: 0,
-    };
-  } catch (err: unknown) {
-    return {
-      url,
-      status: "offline",
-      error: err instanceof Error ? err.message : "Failed to connect",
-      blockHash: null,
-      sameFork: null,
-      matchedHeights: 0,
-      checkedHeights: 0,
-    };
-  }
-}
-
-export async function GET() {
-  try {
-    const results = await Promise.all(RPC_URLS.map((url) => checkOne(url)));
-
-    let highestBlock = BigInt(0);
-    for (const node of results) {
-      if (node.blockNumber) {
-        const bn = BigInt(node.blockNumber);
-        if (bn > highestBlock) highestBlock = bn;
-      }
-    }
-
-    const heightsToCheck: bigint[] = [];
-    if (highestBlock > BigInt(10)) {
-      heightsToCheck.push(highestBlock - BigInt(2));
-      heightsToCheck.push(highestBlock - BigInt(5));
-    } else if (highestBlock > BigInt(0)) {
-      heightsToCheck.push(highestBlock);
-    }
-
-    const hashesByHeight: Record<string, Record<string, number>> = {};
-
-    await Promise.all(
-      results.map(async (node) => {
-        if (node.status !== "online") return;
-
-        const client = createPublicClient({
-          chain: blockdag,
-          transport: http(node.url, { timeout: 5000 }),
-        });
-
-        node._hashes = {};
-        let firstHash: string | null = null;
-
-        await Promise.all(
-          heightsToCheck.map(async (height) => {
-            try {
-              const block = await client.getBlock({ blockNumber: height });
-              if (!firstHash) firstHash = block.hash;
-              const key = height.toString();
-              if (!hashesByHeight[key]) hashesByHeight[key] = {};
-              hashesByHeight[key][block.hash] =
-                (hashesByHeight[key][block.hash] || 0) + 1;
-              node._hashes![key] = block.hash;
-            } catch {
-              // skip
-            }
-          }),
-        );
-
-        node.blockHash = firstHash;
-      }),
-    );
-
-    const majorityByHeight: Record<string, string> = {};
-    for (const [height, counts] of Object.entries(hashesByHeight)) {
-      let bestHash = "";
-      let bestCount = 0;
-      for (const [hash, count] of Object.entries(counts)) {
-        if (count > bestCount) {
-          bestCount = count;
-          bestHash = hash;
-        }
-      }
-      majorityByHeight[height] = bestHash;
-    }
-
-    for (const node of results) {
-      if (node.status !== "online") {
-        node.sameFork = null;
-        continue;
+      if (!res.ok) {
+        setError(data.error || `HTTP ${res.status}`);
+        setLoading(false);
+        return;
       }
 
-      const nodeHashes = node._hashes || {};
-      let matched = 0;
-      let checked = 0;
-
-      for (const [height, majorityHash] of Object.entries(majorityByHeight)) {
-        if (nodeHashes[height]) {
-          checked++;
-          if (nodeHashes[height] === majorityHash) matched++;
-        }
-      }
-
-      node.matchedHeights = matched;
-      node.checkedHeights = checked;
-
-      if (checked === 0) node.sameFork = null;
-      else if (checked >= 2) node.sameFork = matched >= 2;
-      else node.sameFork = matched === checked;
+      setNodes(data.nodes || []);
+      setHighestBlock(data.highestBlock || "0");
+      setCompareHeights(data.compareHeights || []);
+      setLastChecked(
+        data.checkedAt
+          ? new Date(data.checkedAt).toLocaleTimeString()
+          : new Date().toLocaleTimeString(),
+      );
+      setError(data.error || "");
+      setLoading(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load nodes");
+      setLoading(false);
     }
+  }, []);
 
-    return NextResponse.json({
-      nodes: results.map((n) => {
-        const clean = { ...n };
-        delete clean._hashes;
-        return clean;
-      }),
-      highestBlock: highestBlock.toString(),
-      compareHeights: heightsToCheck.map((h) => h.toString()),
-      checkedAt: new Date().toISOString(),
-    });
-  } catch (err: unknown) {
-    return NextResponse.json(
-      {
-        nodes: [],
-        error: err instanceof Error ? err.message : "check-nodes failed",
-        checkedAt: new Date().toISOString(),
-      },
-      { status: 500 },
-    );
-  }
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    checkNodes();
+    const interval = setInterval(checkNodes, 20000);
+    return () => clearInterval(interval);
+  }, [checkNodes]);
+
+  const hasFork = nodes.some((n) => n.sameFork === false);
+
+  return (
+    <main className="min-h-screen bg-gray-950 text-white">
+      <div className="max-w-6xl mx-auto px-4 py-10">
+        <div className="mb-8">
+          <Link href="/" className="text-blue-400 hover:underline text-sm">
+            ← Back to Home
+          </Link>
+          <h1 className="text-3xl font-bold mt-3">RPC Nodes Status</h1>
+          <p className="text-gray-400 mt-1">
+            Live status and fork detection across public BlockDAG RPC endpoints
+          </p>
+          <p className="text-sm text-gray-500 mt-2">
+            Last checked: {lastChecked || "Loading..."}
+            {compareHeights.length > 0 && (
+              <> · Comparing heights {compareHeights.join(", ")}</>
+            )}
+          </p>
+        </div>
+
+        {error && (
+          <div className="mb-6 p-4 bg-red-900/40 border border-red-700 rounded-xl text-red-300 text-sm">
+            {error}
+          </div>
+        )}
+
+        {hasFork && (
+          <div className="mb-6 p-4 bg-red-950/60 border border-red-700 rounded-xl text-red-300">
+            <p className="font-semibold">Fork detected</p>
+            <p className="text-sm mt-1">
+              One or more nodes disagree on recent block hashes.
+            </p>
+          </div>
+        )}
+
+        {loading && nodes.length === 0 && (
+          <p className="text-gray-500">Checking nodes...</p>
+        )}
+
+        {!loading && nodes.length === 0 && !error && (
+          <p className="text-gray-500">No node results returned.</p>
+        )}
+
+        <div className="space-y-4">
+          {nodes.map((node) => {
+            const behind =
+              node.blockNumber && highestBlock !== "0"
+                ? BigInt(highestBlock) - BigInt(node.blockNumber)
+                : null;
+            const farBehind = behind !== null && behind > BigInt(1000);
+
+            return (
+              <div
+                key={node.url}
+                className={`bg-gray-900 border rounded-xl p-5 ${
+                  node.sameFork === false || farBehind
+                    ? "border-red-700"
+                    : "border-gray-800"
+                }`}
+              >
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <p className="font-mono text-sm break-all">{node.url}</p>
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                      <span
+                        className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          node.status === "online"
+                            ? "bg-green-900/50 text-green-400"
+                            : "bg-red-900/50 text-red-400"
+                        }`}
+                      >
+                        {node.status.toUpperCase()}
+                      </span>
+
+                      {node.sameFork === true && (
+                        <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900/50 text-green-400">
+                          SAME FORK
+                        </span>
+                      )}
+                      {node.sameFork === false && (
+                        <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-600 text-white">
+                          DIFFERENT FORK
+                        </span>
+                      )}
+                      {node.status === "online" &&
+                        node.sameFork === null &&
+                        farBehind && (
+                          <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-700 text-white">
+                            TOO FAR BEHIND
+                          </span>
+                        )}
+                      {node.latency != null && (
+                        <span className="text-xs text-gray-500">
+                          {node.latency} ms
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="text-sm space-y-1 md:text-right">
+                    {node.status === "online" ? (
+                      <>
+                        <p>
+                          Chain ID:{" "}
+                          <span
+                            className={
+                              node.chainId === 1404
+                                ? "text-green-400"
+                                : "text-red-400"
+                            }
+                          >
+                            {node.chainId}{" "}
+                            {node.chainId === 1404
+                              ? "(Correct)"
+                              : "(Wrong chain!)"}
+                          </span>
+                        </p>
+                        <p>
+                          Block Height:{" "}
+                          <span className="font-medium">
+                            {node.blockNumber}
+                          </span>
+                        </p>
+                        {behind !== null && (
+                          <p
+                            className={
+                              behind === BigInt(0)
+                                ? "text-green-400"
+                                : farBehind
+                                  ? "text-red-400 font-medium"
+                                  : "text-yellow-400"
+                            }
+                          >
+                            {behind === BigInt(0)
+                              ? "Fully synced"
+                              : `${behind.toString()} block${
+                                  behind === BigInt(1) ? "" : "s"
+                                } behind`}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-red-400 text-sm">{node.error}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </main>
+  );
 }
