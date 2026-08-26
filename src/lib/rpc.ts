@@ -1,5 +1,15 @@
 import { createPublicClient, http, fallback, defineChain } from "viem";
 
+const RPC_URLS = [
+  "https://rpc.east.bdag-us.org",
+  "https://rpc.west.bdag-us.org",
+  "https://rpc.cms-mining-pool.net",
+  "https://rpc.welshdag.trade",
+  "https://rpc.dvdmining.com",
+  "https://rpc.blockdag.engineering",
+  "https://rpc.capedag.com",
+];
+
 export const blockdag = defineChain({
   id: 1404,
   name: "BlockDAG",
@@ -10,27 +20,12 @@ export const blockdag = defineChain({
   },
   rpcUrls: {
     default: {
-      http: [
-        "https://rpc.east.bdag-us.org",
-        "https://rpc.west.bdag-us.org",
-        "https://rpc.cms-mining-pool.net",
-        "https://rpc.welshdag.trade",
-        "https://rpc.dvdmining.com",
-        "https://rpc.blockdag.engineering",
-        "https://rpc.capedag.com",
-      ],
+      http: RPC_URLS,
     },
   },
 });
 
 export const publicClient = createPublicClient({
   chain: blockdag,
-  transport: fallback([
-    http("https://rpc.east.bdag-us.org"),
-    http("https://rpc.west.bdag-us.org"),
-    http("https://rpc.welshdag.trade"),
-    http("https://rpc.dvdmining.com"),
-    http("https://rpc.blockdag.engineering"),
-    http("https://rpc.capedag.com"),
-  ]),
+  transport: fallback(RPC_URLS.map((url) => http(url))),
 });
