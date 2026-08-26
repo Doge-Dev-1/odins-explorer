@@ -10,7 +10,6 @@ type NodeStatus = {
   blockNumber?: string;
   latency?: number;
   error?: string;
-  blockHash?: string | null;
   sameFork?: boolean | null;
   matchedHeights?: number;
   checkedHeights?: number;
@@ -19,15 +18,33 @@ type NodeStatus = {
 export default function NodesPage() {
   const [nodes, setNodes] = useState<NodeStatus[]>([]);
   const [highestBlock, setHighestBlock] = useState("0");
-  const [compareHeights, setCompareHeights] = useState<string[]>([]);
   const [lastChecked, setLastChecked] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const checkNodes = useCallback(async () => {
     try {
-      const res = await fetch("/api/check-nodes", { cache: "no-store" });
-      const data = await res.json();
+      const res = await fetch("https://api.odinsexplorer.app/api/nodes", {
+        cache: "no-store",
+      });
+      const text = await res.text();
+
+      let data: {
+        nodes?: NodeStatus[];
+        highestBlock?: string;
+        checkedAt?: string;
+        error?: string;
+      };
+
+      try {
+        data = JSON.parse(text);
+      } catch {
+        setError(
+          `API returned non-JSON (status ${res.status}). ${text.slice(0, 80)}`,
+        );
+        setLoading(false);
+        return;
+      }
 
       if (!res.ok) {
         setError(data.error || `HTTP ${res.status}`);
@@ -37,7 +54,6 @@ export default function NodesPage() {
 
       setNodes(data.nodes || []);
       setHighestBlock(data.highestBlock || "0");
-      setCompareHeights(data.compareHeights || []);
       setLastChecked(
         data.checkedAt
           ? new Date(data.checkedAt).toLocaleTimeString()
@@ -58,8 +74,6 @@ export default function NodesPage() {
     return () => clearInterval(interval);
   }, [checkNodes]);
 
-  const hasFork = nodes.some((n) => n.sameFork === false);
-
   return (
     <main className="min-h-screen bg-gray-950 text-white">
       <div className="max-w-6xl mx-auto px-4 py-10">
@@ -69,28 +83,17 @@ export default function NodesPage() {
           </Link>
           <h1 className="text-3xl font-bold mt-3">RPC Nodes Status</h1>
           <p className="text-gray-400 mt-1">
-            Live status and fork detection across public BlockDAG RPC endpoints
+            Live status of public BlockDAG RPC endpoints. bdagscan is listed for
+            reference only and is not used for indexing.
           </p>
           <p className="text-sm text-gray-500 mt-2">
             Last checked: {lastChecked || "Loading..."}
-            {compareHeights.length > 0 && (
-              <> · Comparing heights {compareHeights.join(", ")}</>
-            )}
           </p>
         </div>
 
         {error && (
           <div className="mb-6 p-4 bg-red-900/40 border border-red-700 rounded-xl text-red-300 text-sm">
             {error}
-          </div>
-        )}
-
-        {hasFork && (
-          <div className="mb-6 p-4 bg-red-950/60 border border-red-700 rounded-xl text-red-300">
-            <p className="font-semibold">Fork detected</p>
-            <p className="text-sm mt-1">
-              One or more nodes disagree on recent block hashes.
-            </p>
           </div>
         )}
 
@@ -104,6 +107,7 @@ export default function NodesPage() {
 
         <div className="space-y-4">
           {nodes.map((node) => {
+            const isBdagscan = node.url.includes("bdagscan");
             const behind =
               node.blockNumber && highestBlock !== "0"
                 ? BigInt(highestBlock) - BigInt(node.blockNumber)
@@ -114,9 +118,7 @@ export default function NodesPage() {
               <div
                 key={node.url}
                 className={`bg-gray-900 border rounded-xl p-5 ${
-                  node.sameFork === false || farBehind
-                    ? "border-red-700"
-                    : "border-gray-800"
+                  farBehind ? "border-red-700" : "border-gray-800"
                 }`}
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -133,23 +135,18 @@ export default function NodesPage() {
                         {node.status.toUpperCase()}
                       </span>
 
-                      {node.sameFork === true && (
-                        <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900/50 text-green-400">
-                          SAME FORK
+                      {isBdagscan && (
+                        <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-300">
+                          REFERENCE ONLY
                         </span>
                       )}
-                      {node.sameFork === false && (
-                        <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-600 text-white">
-                          DIFFERENT FORK
+
+                      {farBehind && (
+                        <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-700 text-white">
+                          TOO FAR BEHIND
                         </span>
                       )}
-                      {node.status === "online" &&
-                        node.sameFork === null &&
-                        farBehind && (
-                          <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-700 text-white">
-                            TOO FAR BEHIND
-                          </span>
-                        )}
+
                       {node.latency != null && (
                         <span className="text-xs text-gray-500">
                           {node.latency} ms
