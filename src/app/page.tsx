@@ -29,6 +29,14 @@ function SkeletonTxCard() {
   );
 }
 
+type IndexStats = {
+  lowestBlock: string | null;
+  highestBlock: string | null;
+  blocksIndexed: number;
+  txsIndexed: number;
+  tokenTransfers: number;
+};
+
 export default function Home() {
   const [latestBlocks, setLatestBlocks] = useState<Block[]>([]);
   const [latestTxs, setLatestTxs] = useState<Transaction[]>([]);
@@ -38,6 +46,7 @@ export default function Home() {
   const [txInLatest, setTxInLatest] = useState<number>(0);
   const [gasPrice, setGasPrice] = useState<string>("-");
   const [loading, setLoading] = useState(true);
+  const [indexStats, setIndexStats] = useState<IndexStats | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -81,6 +90,21 @@ export default function Home() {
       setErrorMessage("");
       setLastUpdate(new Date().toLocaleTimeString());
       setLoading(false);
+
+      try {
+        const statsRes = await fetch(
+          "https://api.odinsexplorer.app/api/stats",
+          {
+            cache: "no-store",
+          },
+        );
+        if (statsRes.ok) {
+          const stats = await statsRes.json();
+          setIndexStats(stats);
+        }
+      } catch {
+        // optional
+      }
     } catch (err) {
       setErrorMessage("Could not connect to any BlockDAG RPC.");
       console.error(err);
@@ -91,18 +115,13 @@ export default function Home() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
-
-    const interval = setInterval(() => {
-      fetchData();
-    }, 6000);
-
+    const interval = setInterval(fetchData, 6000);
     return () => clearInterval(interval);
   }, [fetchData]);
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
       <div className="max-w-7xl mx-auto px-4 py-8 sm:py-10">
-        {/* Search Bar */}
         <form action="/search" className="mb-8">
           <input
             name="q"
@@ -111,13 +130,13 @@ export default function Home() {
           />
         </form>
 
-        {/* Stats Bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        {/* Live chain stats */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <p className="text-gray-500 text-xs sm:text-sm">Current Block</p>
             <p className="text-lg sm:text-xl font-semibold mt-1">
               {loading ? (
-                <span className="inline-block h-6 w-20 bg-gray-800 rounded animate-pulse"></span>
+                <span className="inline-block h-6 w-20 bg-gray-800 rounded animate-pulse" />
               ) : (
                 currentBlock
               )}
@@ -128,7 +147,7 @@ export default function Home() {
             <p className="text-gray-500 text-xs sm:text-sm">Gas Price</p>
             <p className="text-lg sm:text-xl font-semibold mt-1">
               {loading ? (
-                <span className="inline-block h-6 w-16 bg-gray-800 rounded animate-pulse"></span>
+                <span className="inline-block h-6 w-16 bg-gray-800 rounded animate-pulse" />
               ) : (
                 <>
                   {gasPrice} <span className="text-sm text-gray-400">Gwei</span>
@@ -143,7 +162,7 @@ export default function Home() {
             </p>
             <p className="text-lg sm:text-xl font-semibold mt-1">
               {loading ? (
-                <span className="inline-block h-6 w-12 bg-gray-800 rounded animate-pulse"></span>
+                <span className="inline-block h-6 w-12 bg-gray-800 rounded animate-pulse" />
               ) : (
                 txInLatest
               )}
@@ -154,10 +173,40 @@ export default function Home() {
             <p className="text-gray-500 text-xs sm:text-sm">Last Update</p>
             <p className="text-lg sm:text-xl font-semibold mt-1">
               {loading ? (
-                <span className="inline-block h-6 w-16 bg-gray-800 rounded animate-pulse"></span>
+                <span className="inline-block h-6 w-16 bg-gray-800 rounded animate-pulse" />
               ) : (
                 lastUpdate || "..."
               )}
+            </p>
+          </div>
+        </div>
+
+        {/* Indexer stats */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <p className="text-gray-500 text-xs sm:text-sm">Indexed range</p>
+            <p className="text-sm sm:text-base font-semibold mt-1 break-all">
+              {indexStats?.lowestBlock && indexStats?.highestBlock
+                ? `${indexStats.lowestBlock} → ${indexStats.highestBlock}`
+                : "—"}
+            </p>
+          </div>
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <p className="text-gray-500 text-xs sm:text-sm">Blocks indexed</p>
+            <p className="text-lg sm:text-xl font-semibold mt-1">
+              {indexStats ? indexStats.blocksIndexed.toLocaleString() : "—"}
+            </p>
+          </div>
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <p className="text-gray-500 text-xs sm:text-sm">Txs indexed</p>
+            <p className="text-lg sm:text-xl font-semibold mt-1">
+              {indexStats ? indexStats.txsIndexed.toLocaleString() : "—"}
+            </p>
+          </div>
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <p className="text-gray-500 text-xs sm:text-sm">Token transfers</p>
+            <p className="text-lg sm:text-xl font-semibold mt-1">
+              {indexStats ? indexStats.tokenTransfers.toLocaleString() : "—"}
             </p>
           </div>
         </div>
@@ -168,9 +217,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* Two columns */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Latest Blocks */}
           <div>
             <h2 className="text-xl font-semibold mb-4">Latest Blocks</h2>
             <div className="space-y-3">
@@ -205,7 +252,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Latest Transactions */}
           <div>
             <h2 className="text-xl font-semibold mb-4">Latest Transactions</h2>
             <div className="space-y-3">
@@ -268,11 +314,13 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Footer */}
         <footer className="mt-16 pt-8 border-t border-gray-800 text-center text-gray-500 text-sm">
-          <div className="flex justify-center gap-6 mb-3">
+          <div className="flex justify-center flex-wrap gap-6 mb-3">
             <Link href="/" className="hover:text-white transition">
               Home
+            </Link>
+            <Link href="/tokens" className="hover:text-white transition">
+              Tokens
             </Link>
             <Link href="/contracts" className="hover:text-white transition">
               Contracts
