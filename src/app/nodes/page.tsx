@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import AdBanner from "@/components/AdBanner";
 
 type NodeStatus = {
   url: string;
@@ -90,6 +91,8 @@ export default function NodesPage() {
             Last checked: {lastChecked || "Loading..."}
           </p>
         </div>
+
+        <AdBanner unitId="2453522" />
 
         {error && (
           <div className="mb-6 p-4 bg-red-900/40 border border-red-700 rounded-xl text-red-300 text-sm">
@@ -206,6 +209,8 @@ export default function NodesPage() {
             );
           })}
         </div>
+
+        <AdBanner unitId="2453522" />
       </div>
     </main>
   );
