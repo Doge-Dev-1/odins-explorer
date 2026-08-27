@@ -1,4 +1,5 @@
 import Link from "next/link";
+import AdBanner from "@/components/AdBanner";
 
 export default function ContractsPage() {
   return (
@@ -11,7 +12,8 @@ export default function ContractsPage() {
           </p>
         </div>
 
-        {/* How it works */}
+        <AdBanner unitId="2453520" />
+
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">How to view a contract</h2>
           <ol className="list-decimal list-inside space-y-3 text-gray-300">
@@ -33,7 +35,6 @@ export default function ContractsPage() {
           </ol>
         </div>
 
-        {/* Current features */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
             <h3 className="text-lg font-semibold mb-3 text-green-400">
@@ -84,7 +85,6 @@ export default function ContractsPage() {
           </div>
         </div>
 
-        {/* Search CTA */}
         <div className="bg-linear-to-r from-blue-900/30 to-purple-900/30 border border-blue-800/50 rounded-xl p-6 text-center">
           <h3 className="text-lg font-semibold mb-2">Ready to explore?</h3>
           <p className="text-gray-400 text-sm mb-5">
@@ -99,7 +99,8 @@ export default function ContractsPage() {
           </Link>
         </div>
 
-        {/* Note */}
+        <AdBanner unitId="2453520" />
+
         <div className="mt-8 p-4 bg-gray-900/50 border border-gray-800 rounded-xl text-gray-400 text-sm">
           <p>
             <span className="text-gray-300 font-medium">Note:</span> Full
