@@ -1,9 +1,13 @@
-export default function AdBanner() {
+type AdBannerProps = {
+  unitId?: string;
+};
+
+export default function AdBanner({ unitId = "2453487" }: AdBannerProps) {
   return (
     <div className="w-full my-6" style={{ position: "relative", zIndex: 1 }}>
       <iframe
-        data-aa="2453487"
-        src="https://acceptable.a-ads.com/2453487/?size=Adaptive"
+        data-aa={unitId}
+        src={`https://acceptable.a-ads.com/${unitId}/?size=Adaptive`}
         style={{
           border: 0,
           padding: 0,

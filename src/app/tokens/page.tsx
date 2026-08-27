@@ -1,4 +1,5 @@
 import Link from "next/link";
+import AdBanner from "@/components/AdBanner";
 
 export default function TokensPage() {
   return (
@@ -6,6 +7,8 @@ export default function TokensPage() {
       <div className="max-w-3xl mx-auto px-4 py-10">
         <h1 className="text-3xl font-bold mb-2">Tokens</h1>
         <p className="text-gray-400 mb-8">ERC-20 token tracking on BlockDAG</p>
+
+        <AdBanner unitId="2453519" />
 
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4 text-sm text-gray-300">
           <p>
@@ -23,6 +26,8 @@ export default function TokensPage() {
             <li>Contract verification + Read/Write — planned next</li>
           </ul>
         </div>
+
+        <AdBanner unitId="2453519" />
 
         <div className="mt-8">
           <Link href="/" className="text-blue-400 text-sm hover:underline">
