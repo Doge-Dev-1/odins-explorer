@@ -7,6 +7,7 @@ const links = [
   { href: "/", label: "Home" },
   { href: "/tokens", label: "Tokens" },
   { href: "/contracts", label: "Contracts" },
+  { href: "/verify", label: "Verify" },
   { href: "/nodes", label: "RPC Nodes" },
 ];
 
@@ -19,7 +20,6 @@ export default function Navbar() {
         <Link href="/" className="font-semibold text-white tracking-tight">
           Odin&apos;s Explorer
         </Link>
-
         <nav className="hidden sm:flex items-center gap-6 text-sm">
           {links.map((link) => (
             <Link
@@ -31,7 +31,6 @@ export default function Navbar() {
             </Link>
           ))}
         </nav>
-
         <button
           type="button"
           className="sm:hidden text-gray-300 text-sm px-2 py-1 border border-gray-700 rounded"
@@ -41,7 +40,6 @@ export default function Navbar() {
           Menu
         </button>
       </div>
-
       {open && (
         <nav className="sm:hidden border-t border-gray-800 px-4 py-3 flex flex-col gap-3 text-sm">
           {links.map((link) => (
