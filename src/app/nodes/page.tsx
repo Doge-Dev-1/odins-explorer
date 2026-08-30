@@ -19,6 +19,7 @@ type NodeStatus = {
 export default function NodesPage() {
   const [nodes, setNodes] = useState<NodeStatus[]>([]);
   const [highestBlock, setHighestBlock] = useState("0");
+  const [compareHeights, setCompareHeights] = useState<string[]>([]);
   const [lastChecked, setLastChecked] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -33,6 +34,7 @@ export default function NodesPage() {
       let data: {
         nodes?: NodeStatus[];
         highestBlock?: string;
+        compareHeights?: string[];
         checkedAt?: string;
         error?: string;
       };
@@ -55,6 +57,7 @@ export default function NodesPage() {
 
       setNodes(data.nodes || []);
       setHighestBlock(data.highestBlock || "0");
+      setCompareHeights(data.compareHeights || []);
       setLastChecked(
         data.checkedAt
           ? new Date(data.checkedAt).toLocaleTimeString()
@@ -75,6 +78,8 @@ export default function NodesPage() {
     return () => clearInterval(interval);
   }, [checkNodes]);
 
+  const hasFork = nodes.some((n) => n.sameFork === false);
+
   return (
     <main className="min-h-screen bg-gray-950 text-white">
       <div className="max-w-6xl mx-auto px-4 py-10">
@@ -84,11 +89,14 @@ export default function NodesPage() {
           </Link>
           <h1 className="text-3xl font-bold mt-3">RPC Nodes Status</h1>
           <p className="text-gray-400 mt-1">
-            Live status of public BlockDAG RPC endpoints. bdagscan is listed for
-            reference only and is not used for indexing.
+            Live status and fork detection across public BlockDAG RPC endpoints.
+            bdagscan is listed for reference only and is not used for indexing.
           </p>
           <p className="text-sm text-gray-500 mt-2">
             Last checked: {lastChecked || "Loading..."}
+            {compareHeights.length > 0 && (
+              <> · Comparing heights {compareHeights.join(", ")}</>
+            )}
           </p>
         </div>
 
@@ -97,6 +105,15 @@ export default function NodesPage() {
         {error && (
           <div className="mb-6 p-4 bg-red-900/40 border border-red-700 rounded-xl text-red-300 text-sm">
             {error}
+          </div>
+        )}
+
+        {hasFork && (
+          <div className="mb-6 p-4 bg-red-950/60 border border-red-700 rounded-xl text-red-300">
+            <p className="font-semibold">Fork detected</p>
+            <p className="text-sm mt-1">
+              One or more nodes disagree on recent block hashes.
+            </p>
           </div>
         )}
 
@@ -121,7 +138,9 @@ export default function NodesPage() {
               <div
                 key={node.url}
                 className={`bg-gray-900 border rounded-xl p-5 ${
-                  farBehind ? "border-red-700" : "border-gray-800"
+                  node.sameFork === false || farBehind
+                    ? "border-red-700"
+                    : "border-gray-800"
                 }`}
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -144,11 +163,23 @@ export default function NodesPage() {
                         </span>
                       )}
 
-                      {farBehind && (
-                        <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-700 text-white">
-                          TOO FAR BEHIND
+                      {node.sameFork === true && (
+                        <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900/50 text-green-400">
+                          SAME FORK
                         </span>
                       )}
+                      {node.sameFork === false && (
+                        <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-600 text-white">
+                          DIFFERENT FORK
+                        </span>
+                      )}
+                      {node.status === "online" &&
+                        node.sameFork === null &&
+                        farBehind && (
+                          <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-700 text-white">
+                            TOO FAR BEHIND
+                          </span>
+                        )}
 
                       {node.latency != null && (
                         <span className="text-xs text-gray-500">
