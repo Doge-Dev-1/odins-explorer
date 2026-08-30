@@ -72,6 +72,8 @@ export default async function AddressPage({
   let balance = BigInt(0);
   let transactionCount = BigInt(0);
   let isContract = false;
+  let verified = false;
+  let contractName = "";
   let transactions: TxRecord[] = [];
   let total = 0;
   let totalPages = 1;
@@ -94,6 +96,19 @@ export default async function AddressPage({
     isContract = !!contractCode && contractCode !== "0x";
   } catch (err) {
     rpcError = err instanceof Error ? err.message : String(err);
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/contract/${normalized}`, {
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const data = await res.json();
+      verified = !!data.verified;
+      contractName = data.contract?.name || "";
+    }
+  } catch {
+    // optional
   }
 
   try {
@@ -138,7 +153,7 @@ export default async function AddressPage({
           </div>
         </div>
 
-        <div className="mb-6">
+        <div className="mb-6 flex flex-wrap items-center gap-2">
           <span
             className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
               isContract
@@ -148,7 +163,38 @@ export default async function AddressPage({
           >
             {isContract ? "Contract" : "Wallet / EOA"}
           </span>
+          {verified && (
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-900/50 text-green-300">
+              Verified{contractName ? ` · ${contractName}` : ""}
+            </span>
+          )}
         </div>
+
+        {isContract && (
+          <div className="mb-6 flex flex-wrap gap-3">
+            {verified ? (
+              <Link
+                href={`/contract/${addr}`}
+                className="inline-block bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium"
+              >
+                Read Contract
+              </Link>
+            ) : (
+              <Link
+                href="/verify"
+                className="inline-block bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+              >
+                Verify this contract
+              </Link>
+            )}
+            <Link
+              href="/verify"
+              className="inline-block text-blue-400 hover:underline text-sm px-2 py-2"
+            >
+              Submit / update ABI
+            </Link>
+          </div>
+        )}
 
         {rpcError && (
           <div className="mb-4 p-4 bg-red-900/40 border border-red-700 rounded-xl text-red-300 text-sm">
