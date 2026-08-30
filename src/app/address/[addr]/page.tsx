@@ -14,6 +14,7 @@ type TxRecord = {
   from_address: string;
   to_address: string | null;
   value: string;
+  timestamp?: string | null;
 };
 
 type TokenTransfer = {
@@ -23,7 +24,26 @@ type TokenTransfer = {
   from_address: string;
   to_address: string;
   value: string;
+  timestamp?: string | null;
 };
+
+function timeAgo(iso?: string | null) {
+  if (!iso) return "";
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const diff = Math.max(0, Math.floor((Date.now() - then) / 1000));
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function formatTime(iso?: string | null) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return `${d.toLocaleString()} (${timeAgo(iso)})`;
+}
 
 export default async function AddressPage({
   params,
@@ -104,6 +124,9 @@ export default async function AddressPage({
     tokenError = err instanceof Error ? err.message : String(err);
   }
 
+  const nonceNum = Number(transactionCount);
+  const historyGap = nonceNum > 0 && total < nonceNum;
+
   return (
     <main className="min-h-screen bg-gray-950 text-white">
       <div className="max-w-6xl mx-auto px-4 py-10">
@@ -133,6 +156,14 @@ export default async function AddressPage({
           </div>
         )}
 
+        {historyGap && (
+          <div className="mb-4 p-4 bg-gray-900 border border-gray-800 rounded-xl text-gray-400 text-sm">
+            This address has nonce {nonceNum.toLocaleString()} but only{" "}
+            {total.toLocaleString()} indexed transactions so far. Older history
+            appears as backfill continues.
+          </div>
+        )}
+
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-8">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div>
@@ -155,7 +186,6 @@ export default async function AddressPage({
           </div>
         </div>
 
-        {/* Native transactions */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <h2 className="text-xl font-semibold">Transactions</h2>
           <p className="text-sm text-gray-500">
@@ -232,6 +262,7 @@ export default async function AddressPage({
                       {isOut ? "-" : "+"}
                       {formatEther(BigInt(tx.value || "0"))} BDAG
                     </span>
+                    <span>{formatTime(tx.timestamp)}</span>
                   </div>
                 </div>
               );
@@ -269,7 +300,6 @@ export default async function AddressPage({
           </div>
         )}
 
-        {/* Token transfers */}
         <div className="border-t border-gray-800 pt-10">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <h2 className="text-xl font-semibold">Token Transfers (ERC-20)</h2>
@@ -292,10 +322,9 @@ export default async function AddressPage({
                 No token transfers indexed yet
               </p>
               <p>
-                Odin&apos;s Explorer is set up to index standard ERC-20{" "}
-                <span className="font-mono text-xs">Transfer</span> events. When
-                tokens are deployed and transferred on BlockDAG, they will
-                appear here automatically.
+                Odin&apos;s Explorer is set up to index standard ERC-20 Transfer
+                events. When tokens are deployed and transferred on BlockDAG,
+                they will appear here automatically.
               </p>
             </div>
           ) : (
@@ -336,51 +365,13 @@ export default async function AddressPage({
                         </Link>
                       </span>
                       <span>Block #{t.block_number}</span>
-                      <span className="font-mono text-gray-400">
-                        value: {t.value}
-                      </span>
+                      <span>{formatTime(t.timestamp)}</span>
                     </div>
                   </div>
                 );
               })}
             </div>
           )}
-
-          {tokenTotalPages > 1 && (
-            <div className="mt-6 flex items-center justify-center gap-3">
-              {tokenPage > 1 && (
-                <Link
-                  href={`/address/${addr}?page=${page}&tokenPage=${tokenPage - 1}`}
-                  className="px-4 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm"
-                >
-                  ← Previous
-                </Link>
-              )}
-              <span className="text-sm text-gray-400">
-                {tokenPage} / {tokenTotalPages}
-              </span>
-              {tokenPage < tokenTotalPages && (
-                <Link
-                  href={`/address/${addr}?page=${page}&tokenPage=${tokenPage + 1}`}
-                  className="px-4 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm"
-                >
-                  Next →
-                </Link>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Roadmap note */}
-        <div className="mt-10 p-4 bg-gray-900/50 border border-gray-800 rounded-xl text-gray-400 text-sm">
-          <p className="text-gray-300 font-medium mb-1">
-            Coming next on contracts
-          </p>
-          <p>
-            Contract source verification and Read/Write interactions will be
-            added so tokens and other contracts can be inspected like a full
-            explorer. Token transfer indexing is already wired into the backend.
-          </p>
         </div>
 
         <div className="mt-8">

@@ -38,6 +38,18 @@ type IndexStats = {
   tokenTransfers: number;
 };
 
+function indexerLag(currentBlock: string, highestIndexed?: string | null) {
+  if (!highestIndexed || currentBlock === "-" || currentBlock === "") {
+    return null;
+  }
+  try {
+    const lag = BigInt(currentBlock) - BigInt(highestIndexed);
+    return lag < BigInt(0) ? BigInt(0) : lag;
+  } catch {
+    return null;
+  }
+}
+
 export default function Home() {
   const [latestBlocks, setLatestBlocks] = useState<Block[]>([]);
   const [latestTxs, setLatestTxs] = useState<Transaction[]>([]);
@@ -120,6 +132,8 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [fetchData]);
 
+  const lag = indexerLag(currentBlock, indexStats?.highestBlock);
+
   return (
     <main className="min-h-screen bg-gray-950 text-white">
       <div className="max-w-7xl mx-auto px-4 py-8 sm:py-10">
@@ -183,7 +197,17 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <p className="text-gray-500 text-xs sm:text-sm">Indexer lag</p>
+            <p className="text-lg sm:text-xl font-semibold mt-1">
+              {loading || lag === null
+                ? "—"
+                : lag === BigInt(0)
+                  ? "Synced"
+                  : `${lag.toString()} blocks`}
+            </p>
+          </div>
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <p className="text-gray-500 text-xs sm:text-sm">Indexed range</p>
             <p className="text-sm sm:text-base font-semibold mt-1 break-all">
