@@ -141,7 +141,7 @@ export default function VerifyPage() {
             <div className="p-4 bg-green-900/40 border border-green-700 rounded-xl text-green-300 text-sm">
               {status}{" "}
               {isAddress(address) && (
-                <Link href={`/contract/${address}`} className="underline ml-1">
+                <Link href={`/contracts/${address}`} className="underline ml-1">
                   Open Read Contract
                 </Link>
               )}

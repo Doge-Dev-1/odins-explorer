@@ -174,7 +174,7 @@ export default async function AddressPage({
           <div className="mb-6 flex flex-wrap gap-3">
             {verified ? (
               <Link
-                href={`/contract/${addr}`}
+                href={`/contracts/${addr}`}
                 className="inline-block bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium"
               >
                 Read Contract
