@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { isAddress } from "viem";
+import AdBanner from "@/components/AdBanner";
 
 const API_BASE = "https://api.odinsexplorer.app";
 
@@ -67,10 +68,13 @@ export default function VerifyPage() {
           ← Contracts
         </Link>
         <h1 className="text-3xl font-bold mt-3 mb-2">Verify contract</h1>
-        <p className="text-gray-400 text-sm mb-8">
+        <p className="text-gray-400 text-sm mb-6">
           Phase 1: submit the contract ABI so Odin can show a Verified badge and
           Read functions. Compiler bytecode matching comes next.
         </p>
+
+        <AdBanner unitId="2454799" width={300} height={250} />
+
         <form onSubmit={onSubmit} className="space-y-5">
           <div>
             <label className="block text-sm text-gray-400 mb-1">
@@ -155,6 +159,8 @@ export default function VerifyPage() {
             {saving ? "Saving..." : "Save verification"}
           </button>
         </form>
+
+        <AdBanner unitId="2454799" width={300} height={250} />
       </div>
     </main>
   );
