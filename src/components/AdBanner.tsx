@@ -1,21 +1,28 @@
 type AdBannerProps = {
-  unitId?: string;
+  unitId: string;
+  width?: number;
+  height?: number;
 };
 
-export default function AdBanner({ unitId = "2453487" }: AdBannerProps) {
+export default function AdBanner({
+  unitId,
+  width = 300,
+  height = 250,
+}: AdBannerProps) {
   return (
-    <div className="w-full my-6" style={{ position: "relative", zIndex: 1 }}>
+    <div className="w-full my-6 flex justify-center">
       <iframe
         data-aa={unitId}
-        src={`https://acceptable.a-ads.com/${unitId}/?size=Adaptive`}
+        src={`https://ad.a-ads.com/${unitId}/?size=${width}x${height}`}
+        width={width}
+        height={height}
         style={{
           border: 0,
           padding: 0,
-          width: "70%",
-          height: "auto",
+          width: `${width}px`,
+          height: `${height}px`,
           overflow: "hidden",
           display: "block",
-          margin: "auto",
         }}
         title="Advertisement"
       />

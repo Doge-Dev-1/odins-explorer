@@ -145,7 +145,7 @@ export default function Home() {
           />
         </form>
 
-        <AdBanner />
+        <AdBanner unitId="2454793" width={300} height={250} />
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
@@ -339,8 +339,7 @@ export default function Home() {
           </div>
         </div>
 
-        <AdBanner />
-
+        <AdBanner unitId="2454793" width={300} height={250} />
         <footer className="mt-16 pt-8 border-t border-gray-800 text-center text-gray-500 text-sm">
           <div className="flex justify-center flex-wrap gap-6 mb-3">
             <Link href="/" className="hover:text-white transition">
