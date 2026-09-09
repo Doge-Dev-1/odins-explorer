@@ -12,7 +12,16 @@ export default function ContractsPage() {
           </p>
         </div>
 
-        <AdBanner unitId="2453520" />
+        <div className="mb-8">
+          <Link
+            href="/verify"
+            className="inline-block bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg text-sm font-medium"
+          >
+            Verify a contract
+          </Link>
+        </div>
+
+        <AdBanner unitId="2454795" width={300} height={250} />
 
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">How to view a contract</h2>
@@ -85,7 +94,7 @@ export default function ContractsPage() {
           </div>
         </div>
 
-        <div className="bg-linear-to-r from-blue-900/30 to-purple-900/30 border border-blue-800/50 rounded-xl p-6 text-center">
+        <div className="bg-linear-to-r from-blue-900/30 to-purple-900/30 border border-blue-800/50 rounded-xl p-6 text-center mb-8">
           <h3 className="text-lg font-semibold mb-2">Ready to explore?</h3>
           <p className="text-gray-400 text-sm mb-5">
             Search for any address on the homepage. If it&apos;s a contract,
@@ -99,14 +108,13 @@ export default function ContractsPage() {
           </Link>
         </div>
 
-        <AdBanner unitId="2453520" />
+        <AdBanner unitId="2454795" width={300} height={250} />
 
         <div className="mt-8 p-4 bg-gray-900/50 border border-gray-800 rounded-xl text-gray-400 text-sm">
           <p>
             <span className="text-gray-300 font-medium">Note:</span> Full
-            contract verification, ABI interaction, and event decoding require
-            additional infrastructure (indexer + verification service). These
-            features will be added in a future update.
+            compiler bytecode matching is the next verification step. ABI submit
+            and Read Contract are available now.
           </p>
         </div>
       </div>
