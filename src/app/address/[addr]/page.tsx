@@ -25,6 +25,8 @@ type TokenTransfer = {
   to_address: string;
   value: string;
   timestamp?: string | null;
+  name?: string | null;
+  symbol?: string | null;
 };
 
 function timeAgo(iso?: string | null) {
@@ -51,6 +53,12 @@ function tokenAmount(value?: string) {
   } catch {
     return "0";
   }
+}
+
+function tokenLabel(t: TokenTransfer) {
+  if (t.symbol) return t.symbol;
+  if (t.name) return t.name;
+  return `${t.token_address.slice(0, 6)}...${t.token_address.slice(-4)}`;
 }
 
 export default async function AddressPage({
@@ -127,10 +135,6 @@ export default async function AddressPage({
   } catch {
     // optional
   }
-
-  const tokenSymbol = contractName.toLowerCase().includes("odin")
-    ? "ODIN"
-    : contractName || "TOKEN";
 
   try {
     const res = await fetch(
@@ -376,9 +380,6 @@ export default async function AddressPage({
             <div className="space-y-3">
               {tokenTransfers.map((t) => {
                 const isOut = t.from_address?.toLowerCase() === normalized;
-                const isOdin =
-                  t.token_address?.toLowerCase() ===
-                  "0xd1ff69b1a403ef4eca306c71b609a8934be5ef54";
                 return (
                   <div
                     key={`${t.tx_hash}-${t.block_number}-${t.token_address}`}
@@ -403,7 +404,7 @@ export default async function AddressPage({
                         </Link>
                       </div>
                       <span className="text-sm text-white">
-                        {tokenAmount(t.value)} {isOdin ? "ODIN" : "tokens"}
+                        {tokenAmount(t.value)} {tokenLabel(t)}
                       </span>
                     </div>
                     <div className="mt-2 text-xs text-gray-500 flex flex-wrap gap-x-4 gap-y-1">
@@ -411,11 +412,9 @@ export default async function AddressPage({
                         Token:{" "}
                         <Link
                           href={`/address/${t.token_address}`}
-                          className="text-purple-300 hover:underline font-mono"
+                          className="text-purple-300 hover:underline"
                         >
-                          {isOdin
-                            ? "OdinTestToken (ODIN)"
-                            : `${t.token_address.slice(0, 8)}...${t.token_address.slice(-6)}`}
+                          {t.name || tokenLabel(t)}
                         </Link>
                       </span>
                       <span>Block #{t.block_number}</span>
@@ -456,11 +455,11 @@ export default async function AddressPage({
                       {t.tx_hash.slice(0, 14)}...{t.tx_hash.slice(-10)}
                     </Link>
                     <span className="text-sm text-white">
-                      {tokenAmount(t.value)} {tokenSymbol}
+                      {tokenAmount(t.value)} {tokenLabel(t)}
                     </span>
                   </div>
                   <div className="mt-2 text-xs text-gray-500 flex flex-wrap gap-x-4 gap-y-1">
-                    <span>{contractName || "Token"}</span>
+                    <span>{t.name || contractName || "Token"}</span>
                     <span>
                       From:{" "}
                       <Link
