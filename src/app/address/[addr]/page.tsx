@@ -50,13 +50,18 @@ export default async function AddressPage({
   searchParams,
 }: {
   params: Promise<{ addr: string }>;
-  searchParams: Promise<{ page?: string; tokenPage?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    tokenPage?: string;
+    activityPage?: string;
+  }>;
 }) {
   const { addr } = await params;
   const sp = await searchParams;
   const normalized = addr.toLowerCase();
   const page = Math.max(1, parseInt(sp.page || "1", 10) || 1);
   const tokenPage = Math.max(1, parseInt(sp.tokenPage || "1", 10) || 1);
+  const activityPage = Math.max(1, parseInt(sp.activityPage || "1", 10) || 1);
 
   if (!isAddress(addr)) {
     return (
@@ -80,8 +85,12 @@ export default async function AddressPage({
   let tokenTransfers: TokenTransfer[] = [];
   let tokenTotal = 0;
   let tokenTotalPages = 1;
+  let tokenActivity: TokenTransfer[] = [];
+  let tokenActivityTotal = 0;
+  let tokenActivityPages = 1;
   let historyError = "";
   let tokenError = "";
+  let tokenActivityError = "";
   let rpcError = "";
 
   try {
@@ -137,6 +146,21 @@ export default async function AddressPage({
     tokenTotalPages = data.totalPages || 1;
   } catch (err) {
     tokenError = err instanceof Error ? err.message : String(err);
+  }
+
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/token/${normalized}/transfers?page=${activityPage}&limit=${PAGE_SIZE}`,
+      { cache: "no-store" },
+    );
+    if (res.ok) {
+      const data = await res.json();
+      tokenActivity = data.transfers || [];
+      tokenActivityTotal = data.total || 0;
+      tokenActivityPages = data.totalPages || 1;
+    }
+  } catch (err) {
+    tokenActivityError = err instanceof Error ? err.message : String(err);
   }
 
   const nonceNum = Number(transactionCount);
@@ -320,7 +344,7 @@ export default async function AddressPage({
           <div className="mb-12 flex items-center justify-center gap-3">
             {page > 1 ? (
               <Link
-                href={`/address/${addr}?page=${page - 1}&tokenPage=${tokenPage}`}
+                href={`/address/${addr}?page=${page - 1}&tokenPage=${tokenPage}&activityPage=${activityPage}`}
                 className="px-4 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm"
               >
                 ← Previous
@@ -335,7 +359,7 @@ export default async function AddressPage({
             </span>
             {page < totalPages ? (
               <Link
-                href={`/address/${addr}?page=${page + 1}&tokenPage=${tokenPage}`}
+                href={`/address/${addr}?page=${page + 1}&tokenPage=${tokenPage}&activityPage=${activityPage}`}
                 className="px-4 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm"
               >
                 Next →
@@ -365,12 +389,7 @@ export default async function AddressPage({
           {tokenTransfers.length === 0 && !tokenError ? (
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 text-gray-400 text-sm space-y-2">
               <p className="text-gray-300 font-medium">
-                No token transfers indexed yet
-              </p>
-              <p>
-                Odin&apos;s Explorer is set up to index standard ERC-20 Transfer
-                events. When tokens are deployed and transferred on BlockDAG,
-                they will appear here automatically.
+                No token transfers for this address as sender/receiver yet
               </p>
             </div>
           ) : (
@@ -419,6 +438,61 @@ export default async function AddressPage({
             </div>
           )}
         </div>
+
+        {tokenActivityTotal > 0 && (
+          <div className="border-t border-gray-800 pt-10 mt-10">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <h2 className="text-xl font-semibold">Transfers of this token</h2>
+              <p className="text-sm text-gray-500">
+                Page {activityPage} of {tokenActivityPages} ·{" "}
+                {tokenActivityTotal} total
+              </p>
+            </div>
+            {tokenActivityError && (
+              <div className="mb-4 p-4 bg-red-900/40 border border-red-700 rounded-xl text-red-300 text-sm">
+                {tokenActivityError}
+              </div>
+            )}
+            <div className="space-y-3">
+              {tokenActivity.map((t) => (
+                <div
+                  key={`${t.tx_hash}-${t.block_number}-${t.from_address}-${t.to_address}`}
+                  className="bg-gray-900 border border-gray-800 rounded-xl px-4 sm:px-5 py-4"
+                >
+                  <Link
+                    href={`/tx/${t.tx_hash}`}
+                    className="text-blue-400 font-mono text-sm"
+                  >
+                    {t.tx_hash.slice(0, 14)}...{t.tx_hash.slice(-10)}
+                  </Link>
+                  <div className="mt-2 text-xs text-gray-500 flex flex-wrap gap-x-4 gap-y-1">
+                    <span>
+                      From:{" "}
+                      <Link
+                        href={`/address/${t.from_address}`}
+                        className="hover:underline"
+                      >
+                        {t.from_address.slice(0, 8)}...
+                        {t.from_address.slice(-6)}
+                      </Link>
+                    </span>
+                    <span>
+                      To:{" "}
+                      <Link
+                        href={`/address/${t.to_address}`}
+                        className="hover:underline"
+                      >
+                        {t.to_address.slice(0, 8)}...{t.to_address.slice(-6)}
+                      </Link>
+                    </span>
+                    <span>Block #{t.block_number}</span>
+                    <span>{formatTime(t.timestamp)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mt-8">
           <Link href="/" className="text-blue-400 text-sm hover:underline">
