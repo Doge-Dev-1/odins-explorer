@@ -45,6 +45,14 @@ function formatTime(iso?: string | null) {
   return `${d.toLocaleString()} (${timeAgo(iso)})`;
 }
 
+function tokenAmount(value?: string) {
+  try {
+    return formatEther(BigInt(value || "0"));
+  } catch {
+    return "0";
+  }
+}
+
 export default async function AddressPage({
   params,
   searchParams,
@@ -119,6 +127,10 @@ export default async function AddressPage({
   } catch {
     // optional
   }
+
+  const tokenSymbol = contractName.toLowerCase().includes("odin")
+    ? "ODIN"
+    : contractName || "TOKEN";
 
   try {
     const res = await fetch(
@@ -340,36 +352,6 @@ export default async function AddressPage({
           </div>
         )}
 
-        {totalPages > 1 && (
-          <div className="mb-12 flex items-center justify-center gap-3">
-            {page > 1 ? (
-              <Link
-                href={`/address/${addr}?page=${page - 1}&tokenPage=${tokenPage}&activityPage=${activityPage}`}
-                className="px-4 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm"
-              >
-                ← Previous
-              </Link>
-            ) : (
-              <span className="px-4 py-2 text-gray-600 text-sm">
-                ← Previous
-              </span>
-            )}
-            <span className="text-sm text-gray-400">
-              {page} / {totalPages}
-            </span>
-            {page < totalPages ? (
-              <Link
-                href={`/address/${addr}?page=${page + 1}&tokenPage=${tokenPage}&activityPage=${activityPage}`}
-                className="px-4 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm"
-              >
-                Next →
-              </Link>
-            ) : (
-              <span className="px-4 py-2 text-gray-600 text-sm">Next →</span>
-            )}
-          </div>
-        )}
-
         <div className="border-t border-gray-800 pt-10">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <h2 className="text-xl font-semibold">Token Transfers (ERC-20)</h2>
@@ -387,36 +369,42 @@ export default async function AddressPage({
           )}
 
           {tokenTransfers.length === 0 && !tokenError ? (
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 text-gray-400 text-sm space-y-2">
-              <p className="text-gray-300 font-medium">
-                No token transfers for this address as sender/receiver yet
-              </p>
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 text-gray-400 text-sm">
+              No token transfers for this address as sender/receiver yet.
             </div>
           ) : (
             <div className="space-y-3">
               {tokenTransfers.map((t) => {
                 const isOut = t.from_address?.toLowerCase() === normalized;
+                const isOdin =
+                  t.token_address?.toLowerCase() ===
+                  "0xd1ff69b1a403ef4eca306c71b609a8934be5ef54";
                 return (
                   <div
                     key={`${t.tx_hash}-${t.block_number}-${t.token_address}`}
                     className="bg-gray-900 border border-gray-800 rounded-xl px-4 sm:px-5 py-4"
                   >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded ${
-                          isOut
-                            ? "bg-red-900/40 text-red-300"
-                            : "bg-green-900/40 text-green-300"
-                        }`}
-                      >
-                        {isOut ? "OUT" : "IN"}
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded ${
+                            isOut
+                              ? "bg-red-900/40 text-red-300"
+                              : "bg-green-900/40 text-green-300"
+                          }`}
+                        >
+                          {isOut ? "OUT" : "IN"}
+                        </span>
+                        <Link
+                          href={`/tx/${t.tx_hash}`}
+                          className="text-blue-400 font-mono text-sm"
+                        >
+                          {t.tx_hash.slice(0, 14)}...{t.tx_hash.slice(-10)}
+                        </Link>
+                      </div>
+                      <span className="text-sm text-white">
+                        {tokenAmount(t.value)} {isOdin ? "ODIN" : "tokens"}
                       </span>
-                      <Link
-                        href={`/tx/${t.tx_hash}`}
-                        className="text-blue-400 font-mono text-sm"
-                      >
-                        {t.tx_hash.slice(0, 14)}...{t.tx_hash.slice(-10)}
-                      </Link>
                     </div>
                     <div className="mt-2 text-xs text-gray-500 flex flex-wrap gap-x-4 gap-y-1">
                       <span>
@@ -425,8 +413,9 @@ export default async function AddressPage({
                           href={`/address/${t.token_address}`}
                           className="text-purple-300 hover:underline font-mono"
                         >
-                          {t.token_address.slice(0, 8)}...
-                          {t.token_address.slice(-6)}
+                          {isOdin
+                            ? "OdinTestToken (ODIN)"
+                            : `${t.token_address.slice(0, 8)}...${t.token_address.slice(-6)}`}
                         </Link>
                       </span>
                       <span>Block #{t.block_number}</span>
@@ -459,13 +448,19 @@ export default async function AddressPage({
                   key={`${t.tx_hash}-${t.block_number}-${t.from_address}-${t.to_address}`}
                   className="bg-gray-900 border border-gray-800 rounded-xl px-4 sm:px-5 py-4"
                 >
-                  <Link
-                    href={`/tx/${t.tx_hash}`}
-                    className="text-blue-400 font-mono text-sm"
-                  >
-                    {t.tx_hash.slice(0, 14)}...{t.tx_hash.slice(-10)}
-                  </Link>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Link
+                      href={`/tx/${t.tx_hash}`}
+                      className="text-blue-400 font-mono text-sm"
+                    >
+                      {t.tx_hash.slice(0, 14)}...{t.tx_hash.slice(-10)}
+                    </Link>
+                    <span className="text-sm text-white">
+                      {tokenAmount(t.value)} {tokenSymbol}
+                    </span>
+                  </div>
                   <div className="mt-2 text-xs text-gray-500 flex flex-wrap gap-x-4 gap-y-1">
+                    <span>{contractName || "Token"}</span>
                     <span>
                       From:{" "}
                       <Link
