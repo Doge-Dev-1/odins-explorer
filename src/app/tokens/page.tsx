@@ -9,28 +9,12 @@ type TokenRow = {
   transfer_count: number;
   last_block: string | null;
   last_seen: string | null;
-  contract_name: string | null;
+  name: string | null;
+  symbol: string | null;
 };
 
 function shortAddr(addr: string) {
   return `${addr.slice(0, 8)}...${addr.slice(-6)}`;
-}
-
-function tokenLabel(row: TokenRow) {
-  if (row.contract_name) return row.contract_name;
-  if (
-    row.token_address.toLowerCase() ===
-    "0xd1ff69b1a403ef4eca306c71b609a8934be5ef54"
-  ) {
-    return "OdinTestToken";
-  }
-  return shortAddr(row.token_address);
-}
-
-function tokenSymbol(row: TokenRow) {
-  const name = (row.contract_name || tokenLabel(row)).toLowerCase();
-  if (name.includes("odin")) return "ODIN";
-  return "";
 }
 
 export default function TokensPage() {
@@ -90,11 +74,11 @@ export default function TokensPage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div>
                   <p className="font-semibold">
-                    {tokenLabel(row)}
-                    {tokenSymbol(row) ? (
+                    {row.name || shortAddr(row.token_address)}
+                    {row.symbol ? (
                       <span className="text-gray-400 font-normal">
                         {" "}
-                        ({tokenSymbol(row)})
+                        ({row.symbol})
                       </span>
                     ) : null}
                   </p>
